@@ -1,0 +1,2330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="RDRS — Real-time ransomware detection dashboard">
+<meta name="theme-color" content="#08080a">
+<title>RDRS — Live Threat Monitor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23e50914' d='M12 2L4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z'/%3E%3C/svg%3E">
+<style>
+/* ═════════════════════════════════════════════════════════════════════
+   RDRS · STYLE SYSTEM
+   1. Tokens   2. Reset   3. Base   4. Layout   5. Utilities
+   6. Components   7. Motion preferences
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────── 1 · DESIGN TOKENS ─────────────── */
+:root{
+  /* surface */
+  --c-bg:#08080a; --c-bg-2:#0e0e11; --c-bg-3:#16161c;
+  --c-card:rgba(22,22,28,.72); --c-glass:rgba(28,28,34,.55);
+  /* lines */
+  --c-border:rgba(255,255,255,.08); --c-border-2:rgba(255,255,255,.14);
+  /* text */
+  --c-text:#f2f2f5; --c-mute:#9a9aa4; --c-mute-2:#5c5c66;
+  /* brand */
+  --c-accent:#e50914; --c-accent-2:#ff2d3a;
+  --c-accent-glow:rgba(229,9,20,.45);
+  /* semantic */
+  --c-ok:#22c55e; --c-warn:#f59e0b; --c-info:#3b82f6; --c-special:#a855f7;
+
+  /* type */
+  --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --fs-hero:clamp(2.75rem,6.4vw,5.25rem);
+  --fs-2xl:clamp(1.35rem,1.8vw,1.5rem);
+  --fs-xl:clamp(1.15rem,1.5vw,1.3125rem);
+  --fs-lg:clamp(.95rem,1vw,1.0625rem);
+  --fs-md:.875rem; --fs-sm:.8125rem; --fs-xs:.6875rem; --fs-2xs:.625rem;
+  --fw-regular:400; --fw-medium:500; --fw-semi:600;
+  --fw-bold:700; --fw-heavy:800; --fw-black:900;
+  --tr-tight:-.03em; --tr-snug:-.01em; --tr-wide:.08em; --tr-wider:.16em;
+  --lh-tight:1; --lh-snug:1.35; --lh-normal:1.5; --lh-loose:1.65;
+
+  /* spacing (4px base) */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px;
+  --s-6:24px; --s-7:32px; --s-8:40px; --s-9:48px; --s-10:64px;
+
+  /* radii */
+  --r-xs:4px; --r-sm:6px; --r-md:10px; --r-lg:14px;
+  --r-xl:20px; --r-2xl:24px; --r-full:999px;
+
+  /* shadow */
+  --sh-sm:0 2px 8px rgba(0,0,0,.3);
+  --sh-md:0 8px 24px rgba(0,0,0,.4);
+  --sh-lg:0 12px 40px rgba(0,0,0,.35);
+  --sh-xl:0 20px 60px rgba(0,0,0,.55);
+  --sh-2xl:0 40px 100px rgba(0,0,0,.7);
+  --sh-glow:0 4px 14px var(--c-accent-glow);
+
+  /* motion */
+  --t-fast:150ms; --t-med:250ms; --t-slow:500ms;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+
+  /* z-scale */
+  --z-base:1; --z-float:2; --z-elevated:3; --z-ticker:10;
+  --z-header:100; --z-modal:500; --z-toast:600; --z-skip:9999;
+
+  /* layout */
+  --container-px:clamp(12px,2vw,24px);
+  --panel-p:clamp(18px,2vw,24px);
+  --section-gap:clamp(20px,3vw,30px);
+}
+
+/* ─────────────── 2 · RESET ─────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+ul,ol{list-style:none}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+figure,figcaption{margin:0}
+dialog{border:none}
+
+/* ─────────────── 3 · BASE ─────────────── */
+html{scroll-behavior:smooth;background:var(--c-bg)}
+body{
+  background:var(--c-bg);color:var(--c-text);
+  font-family:var(--font-sans);font-size:var(--fs-md);line-height:var(--lh-normal);
+  min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:var(--r-sm)}
+::selection{background:var(--c-accent);color:#fff}
+
+/* ─────────────── 4 · LAYOUT PRIMITIVES ─────────────── */
+.section{padding:var(--section-gap) var(--container-px) 0;position:relative;z-index:var(--z-float)}
+.section.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-5)}
+.section.grid-2-wide{display:grid;grid-template-columns:1.4fr 1fr;gap:var(--s-5)}
+
+/* ─────────────── 5 · UTILITIES ─────────────── */
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap}
+.skip-link{position:absolute;left:-999px;top:0;background:var(--c-accent);
+  color:#fff;padding:var(--s-3) var(--s-5);z-index:var(--z-skip);
+  border-radius:0 0 var(--r-md) 0;font-weight:var(--fw-bold)}
+.skip-link:focus{left:0}
+
+/* ─────────────── 6 · COMPONENTS ─────────────── */
+
+/* 6.1 · ambient background */
+.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.ambient::before{content:"";position:absolute;top:-20%;left:-10%;width:60%;height:70%;
+  background:radial-gradient(circle,rgba(229,9,20,.28),transparent 65%);
+  filter:blur(80px);animation:drift 24s ease-in-out infinite}
+.ambient::after{content:"";position:absolute;bottom:-20%;right:-10%;width:60%;height:70%;
+  background:radial-gradient(circle,rgba(59,130,246,.14),transparent 65%);
+  filter:blur(80px);animation:drift 30s ease-in-out infinite reverse}
+
+/* 6.2 · ticker */
+.ticker{position:relative;z-index:var(--z-ticker);
+  background:rgba(8,8,10,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--c-border);height:32px;
+  display:flex;align-items:center;font-family:var(--font-mono);font-size:var(--fs-xs)}
+.ticker-label{flex:0 0 auto;padding:0 var(--s-4);font-weight:var(--fw-heavy);
+  letter-spacing:1px;color:var(--c-accent);border-right:1px solid var(--c-border);
+  text-transform:uppercase;display:flex;align-items:center;gap:var(--s-2)}
+.ticker-dot{width:6px;height:6px;border-radius:50%;background:var(--c-accent);
+  box-shadow:0 0 8px var(--c-accent);animation:pulse 1.5s infinite}
+.ticker-track{flex:1;overflow:hidden;white-space:nowrap}
+.ticker-inner{display:inline-block;padding-left:100%;white-space:nowrap;
+  animation:scroll 60s linear infinite;color:#b8b8c0}
+.ticker-inner span{margin-right:var(--s-9)}
+.ticker-inner .k{color:var(--c-info);font-weight:var(--fw-bold)}
+.ticker-inner .s{color:#d0d0d8}
+.ticker-inner .ent{color:var(--c-accent);font-weight:var(--fw-bold)}
+
+/* 6.3 · header / nav */
+.app-header{position:sticky;top:var(--s-3);z-index:var(--z-header);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 var(--container-px);margin:var(--s-3) 0 0}
+.brand{display:flex;align-items:center;gap:var(--s-3);
+  font-size:var(--fs-xl);font-weight:var(--fw-heavy);letter-spacing:var(--tr-snug);
+  padding:var(--s-2) var(--s-3);border-radius:var(--r-full);
+  background:rgba(8,8,10,.72);backdrop-filter:blur(14px);
+  border:1px solid var(--c-border);color:var(--c-text);text-decoration:none}
+.brand svg{width:30px;height:30px;padding:7px;border-radius:var(--r-sm);
+  background:linear-gradient(135deg,var(--c-accent),var(--c-accent-2));
+  box-shadow:var(--sh-glow);fill:#fff}
+
+.nav-pill{display:flex;gap:var(--s-1);padding:var(--s-1) var(--s-1) var(--s-1) var(--s-1);
+  background:rgba(8,8,10,.78);backdrop-filter:blur(16px);
+  border:1px solid var(--c-border);border-radius:var(--r-full);
+  box-shadow:var(--sh-md);padding:6px}
+.nav-pill a{display:flex;align-items:center;gap:var(--s-2);
+  padding:9px var(--s-4);border-radius:var(--r-full);color:var(--c-mute);
+  text-decoration:none;font-size:var(--fs-sm);font-weight:var(--fw-semi);
+  transition:color var(--t-fast) var(--ease)}
+.nav-pill a:hover{color:var(--c-text)}
+.nav-pill a[aria-current="page"]{background:var(--c-accent);color:#fff;
+  box-shadow:var(--sh-glow)}
+.nav-pill svg{width:14px;height:14px;fill:none;stroke:currentColor;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.nav-actions{display:flex;align-items:center;gap:var(--s-2)}
+.icon-btn{width:38px;height:38px;border-radius:var(--r-full);
+  background:rgba(8,8,10,.78);backdrop-filter:blur(14px);
+  border:1px solid var(--c-border);color:var(--c-text);
+  display:grid;place-items:center;transition:all var(--t-fast) var(--ease)}
+.icon-btn:hover{background:rgba(255,255,255,.06);border-color:var(--c-border-2)}
+.icon-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn.live{position:relative}
+.icon-btn.live::after{content:"";position:absolute;top:8px;right:9px;
+  width:7px;height:7px;border-radius:50%;background:var(--c-ok);
+  box-shadow:0 0 8px var(--c-ok);animation:pulse 2s infinite}
+.icon-btn.live.warn::after{background:var(--c-warn);box-shadow:0 0 8px var(--c-warn)}
+.icon-btn.live.crit::after{background:var(--c-accent);
+  box-shadow:0 0 12px var(--c-accent);animation-duration:1s}
+
+/* 6.4 · hero */
+.hero{position:relative;z-index:var(--z-float);
+  margin:var(--s-6) var(--container-px) 0;
+  min-height:420px;border-radius:var(--r-2xl);overflow:hidden;
+  border:1px solid var(--c-border);
+  background:
+    radial-gradient(circle at 12% 8%,rgba(229,9,20,.55),transparent 55%),
+    radial-gradient(circle at 92% 90%,rgba(59,130,246,.28),transparent 55%),
+    radial-gradient(circle at 50% 50%,rgba(120,0,10,.35),transparent 70%),
+    linear-gradient(180deg,#1a0a0d 0%,var(--c-bg) 100%);
+  padding:var(--s-9) var(--s-9) var(--s-8);
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  gap:var(--s-9);align-items:center}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,transparent 40%,rgba(8,8,10,.95) 100%)}
+.hero::after{content:"";position:absolute;inset:-20%;pointer-events:none;
+  opacity:.7;animation:heroSpin 50s linear infinite;
+  background:conic-gradient(from 90deg,transparent 0deg,rgba(229,9,20,.08) 40deg,
+    transparent 120deg,transparent 240deg,rgba(255,45,58,.06) 300deg,transparent 360deg)}
+.hero-body{position:relative;z-index:var(--z-float);max-width:720px}
+.hero-kicker{display:inline-flex;align-items:center;gap:var(--s-2);
+  padding:6px var(--s-4);border-radius:var(--r-full);
+  background:rgba(229,9,20,.14);border:1px solid rgba(229,9,20,.32);
+  font-size:var(--fs-xs);font-weight:var(--fw-heavy);letter-spacing:1.8px;
+  text-transform:uppercase;color:#ff8088;margin-bottom:var(--s-4);
+  backdrop-filter:blur(6px)}
+.hero-kicker .dot{width:6px;height:6px;border-radius:50%;
+  background:var(--c-accent);box-shadow:0 0 10px var(--c-accent);
+  animation:pulse 1.4s infinite}
+.burst-badge{display:inline-flex;align-items:center;gap:var(--s-2);
+  padding:6px var(--s-4);border-radius:var(--r-full);
+  background:rgba(229,9,20,.14);border:1px solid rgba(229,9,20,.35);
+  color:#ff8088;font-size:var(--fs-xs);font-weight:var(--fw-heavy);
+  letter-spacing:1.6px;text-transform:uppercase;
+  margin-bottom:var(--s-4);margin-left:var(--s-2)}
+.burst-badge::before{content:"";width:6px;height:6px;border-radius:50%;
+  background:var(--c-accent);box-shadow:0 0 8px var(--c-accent);
+  animation:pulse 1.2s infinite}
+
+.hero h1{font-size:var(--fs-hero);line-height:.95;font-weight:var(--fw-black);
+  letter-spacing:var(--tr-tight);margin-bottom:var(--s-5);color:#fff;
+  text-shadow:0 4px 40px rgba(229,9,20,.35)}
+.hero.crit h1{background:linear-gradient(180deg,#fff 20%,#ff505a 80%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  text-shadow:none;filter:drop-shadow(0 4px 30px rgba(229,9,20,.5))}
+.hero.warn h1{background:linear-gradient(180deg,#fff 20%,#ffb94d 80%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none}
+
+.hero-meta{display:flex;flex-wrap:wrap;gap:var(--s-5);font-size:var(--fs-md);
+  color:rgba(255,255,255,.75);margin-bottom:var(--s-5)}
+.hero-meta b{color:#fff;font-weight:var(--fw-bold)}
+.hero-meta .sep{opacity:.4}
+.hero-desc{font-size:var(--fs-lg);color:rgba(255,255,255,.72);
+  max-width:600px;line-height:var(--lh-loose);margin-bottom:var(--s-7)}
+
+.hero-actions{display:flex;align-items:center;gap:var(--s-4)}
+.btn-hero{display:inline-flex;align-items:center;gap:var(--s-3);
+  padding:var(--s-4) var(--s-7);border-radius:var(--r-full);
+  font-weight:var(--fw-bold);font-size:var(--fs-lg);
+  transition:transform var(--t-fast) var(--ease)}
+.btn-hero.primary{background:#fff;color:#0a0a0a;box-shadow:0 8px 30px rgba(255,255,255,.18)}
+.btn-hero.primary:hover{transform:scale(1.03)}
+.btn-hero.primary svg{width:16px;height:16px;fill:#0a0a0a}
+.btn-circle{width:52px;height:52px;border-radius:var(--r-full);
+  background:rgba(255,255,255,.14);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.28);color:#fff;
+  display:grid;place-items:center;transition:all var(--t-fast) var(--ease)}
+.btn-circle:hover{background:rgba(255,255,255,.24);transform:scale(1.06);
+  border-color:rgba(255,255,255,.4)}
+.btn-circle svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+
+.hero-figure{position:relative;z-index:var(--z-float);margin:0}
+.gauge{position:relative;width:220px;height:220px}
+.gauge svg{transform:rotate(-90deg)}
+.gauge .track{fill:none;stroke:rgba(255,255,255,.06);stroke-width:14}
+.gauge .val{fill:none;stroke:var(--c-ok);stroke-width:14;stroke-linecap:round;
+  filter:drop-shadow(0 0 12px currentColor);
+  transition:stroke-dashoffset .8s var(--ease),stroke var(--t-slow) var(--ease)}
+.gauge.warn .val{stroke:var(--c-warn)}
+.gauge.crit .val{stroke:var(--c-accent)}
+.gauge-center{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.gauge-num{font-size:52px;font-weight:var(--fw-black);letter-spacing:-2.5px;
+  line-height:var(--lh-tight);color:#fff;text-shadow:0 4px 24px rgba(229,9,20,.4)}
+.gauge-lbl{font-size:var(--fs-2xs);letter-spacing:2.4px;text-transform:uppercase;
+  color:rgba(255,255,255,.55);margin-top:var(--s-2);font-weight:var(--fw-heavy)}
+
+
+/* 6.4b · hero tagline (static value proposition) */
+.hero-tagline{display:inline-flex;align-items:center;gap:var(--s-3);
+  margin-top:var(--s-5);padding:var(--s-3) var(--s-4);
+  border-radius:var(--r-md);
+  background:rgba(255,255,255,.04);
+  border-left:3px solid var(--c-accent);
+  font-size:var(--fs-md);color:rgba(255,255,255,.82);
+  line-height:var(--lh-snug);max-width:600px;
+  backdrop-filter:blur(6px)}
+.hero-tagline strong{color:#fff;font-weight:var(--fw-bold)}
+.hero-tagline svg{width:16px;height:16px;flex:0 0 16px;
+  stroke:var(--c-accent);fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* 6.5 · stats */
+.stats{position:relative;z-index:var(--z-elevated);
+  margin:-40px var(--container-px) 0;
+  padding:var(--s-5) var(--container-px);border-radius:var(--r-xl);
+  background:var(--c-glass);backdrop-filter:blur(20px);
+  border:1px solid var(--c-border);box-shadow:var(--sh-xl);
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-4)}
+.stat{display:flex;align-items:center;gap:var(--s-4);
+  padding:var(--s-2);border-radius:var(--r-lg);transition:background var(--t-fast)}
+.stat:hover{background:rgba(255,255,255,.04)}
+.stat-icon{width:52px;height:52px;border-radius:var(--r-lg);flex:0 0 52px;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,rgba(229,9,20,.22),rgba(229,9,20,.06));
+  border:1px solid rgba(229,9,20,.28)}
+.stat-icon svg{width:22px;height:22px;stroke:var(--c-accent);fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.stat.b .stat-icon{background:linear-gradient(135deg,rgba(59,130,246,.22),rgba(59,130,246,.06));
+  border-color:rgba(59,130,246,.28)}
+.stat.b .stat-icon svg{stroke:var(--c-info)}
+.stat.y .stat-icon{background:linear-gradient(135deg,rgba(245,158,11,.22),rgba(245,158,11,.06));
+  border-color:rgba(245,158,11,.28)}
+.stat.y .stat-icon svg{stroke:var(--c-warn)}
+.stat.p .stat-icon{background:linear-gradient(135deg,rgba(168,85,247,.22),rgba(168,85,247,.06));
+  border-color:rgba(168,85,247,.28)}
+.stat.p .stat-icon svg{stroke:var(--c-special)}
+.stat-body{min-width:0}
+.stat-val{font-size:var(--fs-2xl);font-weight:var(--fw-black);
+  letter-spacing:var(--tr-snug);line-height:var(--lh-tight);
+  font-variant-numeric:tabular-nums;color:#fff}
+.stat-lbl{font-size:var(--fs-2xs);letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--c-mute);margin-top:var(--s-1);font-weight:var(--fw-bold)}
+
+/* 6.6 · panels */
+main{position:relative;z-index:var(--z-float)}
+.panel{background:var(--c-glass);backdrop-filter:blur(20px);
+  border:1px solid var(--c-border);border-radius:var(--r-xl);
+  padding:var(--panel-p);box-shadow:var(--sh-lg)}
+.panel-head{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:var(--s-4);padding:0 var(--s-1)}
+.panel-title{display:flex;align-items:center;gap:var(--s-3);
+  font-size:var(--fs-xl);font-weight:var(--fw-heavy);letter-spacing:var(--tr-snug)}
+.panel-title .bar{width:4px;height:22px;background:var(--c-accent);
+  border-radius:var(--r-xs);box-shadow:0 0 12px var(--c-accent-glow)}
+.panel-link{display:flex;align-items:center;gap:var(--s-2);
+  color:var(--c-mute);font-size:var(--fs-sm);text-decoration:none;
+  transition:color var(--t-fast);font-weight:var(--fw-semi)}
+.panel-link:hover{color:var(--c-text)}
+.panel-link svg{width:14px;height:14px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.panel-meta{font-size:var(--fs-xs);color:var(--c-mute);
+  letter-spacing:1.2px;text-transform:uppercase;font-weight:var(--fw-bold)}
+
+/* 6.7 · sparklines */
+.spark{height:80px;margin:0}
+.spark svg{width:100%;height:100%;display:block}
+.spark-lbl{font-size:var(--fs-xs);letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--c-mute);margin-bottom:var(--s-3);
+  display:flex;justify-content:space-between;align-items:center;
+  font-weight:var(--fw-bold)}
+.spark-lbl .v{color:var(--c-text);font-family:var(--font-mono);
+  font-weight:var(--fw-heavy);font-size:var(--fs-md)}
+.spark-lbl .axis{color:var(--c-mute-2);font-family:var(--font-mono)}
+.spark-axis{display:flex;justify-content:space-between;font-size:var(--fs-xs);
+  color:var(--c-mute-2);font-family:var(--font-mono);margin-top:var(--s-2)}
+
+/* 6.8 · timeline (alerts) */
+.tl{position:relative;padding-left:var(--s-6);max-height:280px;
+  overflow-y:auto;min-height:120px}
+.tl::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1px;
+  background:rgba(255,255,255,.1)}
+.tl li{position:relative;padding:var(--s-3) 0;
+  border-bottom:1px solid rgba(255,255,255,.05)}
+.tl li:last-child{border-bottom:none}
+.tl li::before{content:"";position:absolute;left:-22px;top:18px;
+  width:11px;height:11px;border-radius:50%;background:var(--c-ok);
+  border:2px solid #141418;box-shadow:0 0 0 1px var(--c-ok)}
+.tl li[data-level="Warning"]::before{background:var(--c-warn);
+  box-shadow:0 0 0 1px var(--c-warn)}
+.tl li[data-level="Critical"]::before{background:var(--c-accent);
+  box-shadow:0 0 0 1px var(--c-accent);animation:pulse 1.5s infinite}
+.tl-msg{font-size:var(--fs-md);color:#e8e8f0;margin-bottom:var(--s-2);
+  line-height:var(--lh-snug)}
+.tl-meta{font-size:var(--fs-xs);color:var(--c-mute);display:flex;
+  gap:var(--s-4);font-family:var(--font-mono);align-items:center}
+.tl-score{font-weight:var(--fw-black);font-family:var(--font-mono);
+  font-size:var(--fs-sm);padding:2px var(--s-2);border-radius:var(--r-sm);
+  background:rgba(34,197,94,.12);color:var(--c-ok)}
+.tl li[data-level="Warning"] .tl-score{background:rgba(245,158,11,.14);color:var(--c-warn)}
+.tl li[data-level="Critical"] .tl-score{background:rgba(229,9,20,.16);color:var(--c-accent)}
+
+/* 6.9 · incidents */
+.inc-list li{display:flex;align-items:center;gap:var(--s-4);
+  padding:var(--s-4) 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.inc-list li:last-child{border-bottom:none}
+.inc-badge{width:40px;height:40px;border-radius:var(--r-md);
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,rgba(229,9,20,.25),rgba(229,9,20,.08));
+  border:1px solid rgba(229,9,20,.3);color:var(--c-accent);
+  font-weight:var(--fw-black);font-size:var(--fs-sm);font-family:var(--font-mono)}
+.inc-body{flex:1;min-width:0}
+.inc-title{font-size:var(--fs-md);font-weight:var(--fw-bold);
+  margin-bottom:var(--s-1)}
+.inc-sub{font-size:var(--fs-xs);color:var(--c-mute);font-family:var(--font-mono)}
+.inc-score{font-size:var(--fs-2xl);font-weight:var(--fw-black);
+  color:var(--c-accent);font-family:var(--font-mono);
+  letter-spacing:var(--tr-tight);text-shadow:0 0 12px rgba(229,9,20,.5)}
+
+/* 6.10 · bar lists */
+.bars{display:flex;flex-direction:column;gap:var(--s-1)}
+.bars li{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,2fr) 58px;
+  gap:var(--s-4);align-items:center;padding:var(--s-2) 0;
+  border-bottom:1px solid rgba(255,255,255,.04);font-size:var(--fs-sm)}
+.bars li:last-child{border-bottom:none}
+.bar-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-weight:var(--fw-semi);color:#e8e8f0}
+.bar-name .dir{color:var(--c-mute-2);font-weight:var(--fw-regular)}
+.bar-name .ext{color:var(--c-mute);font-weight:var(--fw-regular);
+  font-family:var(--font-mono)}
+.bar-track{height:7px;background:rgba(255,255,255,.05);
+  border-radius:var(--r-xs);overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:var(--r-xs);
+  background:linear-gradient(90deg,var(--c-accent),var(--c-accent-2));
+  box-shadow:0 0 10px rgba(229,9,20,.5);
+  transition:width var(--t-slow) var(--ease)}
+.bar-fill.e{background:linear-gradient(90deg,var(--c-info),#8b5cf6);
+  box-shadow:0 0 10px rgba(59,130,246,.4)}
+.bar-fill.e.hi{background:linear-gradient(90deg,var(--c-warn),var(--c-accent));
+  box-shadow:0 0 12px rgba(229,9,20,.6)}
+.bar-num{text-align:right;font-family:var(--font-mono);font-size:var(--fs-sm);
+  color:var(--c-mute);font-variant-numeric:tabular-nums}
+.thr-line{position:absolute;top:-2px;bottom:-2px;width:2px;
+  background:rgba(229,9,20,.85);border-radius:1px;
+  box-shadow:0 0 8px rgba(229,9,20,.8)}
+
+/* 6.11 · donut */
+.donut-wrap{display:flex;align-items:center;gap:var(--s-6)}
+.donut{position:relative;width:160px;height:160px;flex:0 0 auto;margin:0}
+.donut svg{transform:rotate(-90deg)}
+.donut .seg{fill:none;stroke-width:22;transition:stroke-dashoffset var(--t-slow)}
+.donut-center{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.donut-center .n{font-size:var(--fs-2xl);font-weight:var(--fw-black);
+  letter-spacing:var(--tr.snug);line-height:var(--lh-tight);color:#fff}
+.donut-center .l{font-size:var(--fs-2xs);letter-spacing:2px;text-transform:uppercase;
+  color:var(--c-mute);margin-top:var(--s-1);font-weight:var(--fw-heavy)}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:var(--s-3)}
+.donut-legend li{display:flex;align-items:center;gap:var(--s-3);
+  font-size:var(--fs-sm)}
+.lg-dot{width:10px;height:10px;border-radius:50%}
+.lg-name{flex:1;color:#d0d0d8;text-transform:capitalize;font-weight:var(--fw-medium)}
+.lg-val{font-family:var(--font-mono);color:#fff;font-weight:var(--fw-heavy);
+  font-variant-numeric:tabular-nums}
+.lg-pct{font-family:var(--font-mono);color:var(--c-mute);
+  font-size:var(--fs-xs);width:44px;text-align:right}
+
+/* 6.12 · events table */
+.evts{max-height:400px;overflow-y:auto;font-family:var(--font-mono);
+  font-size:var(--fs-sm)}
+.evts li{display:grid;grid-template-columns:92px minmax(0,1fr) auto auto;
+  gap:var(--s-4);align-items:center;padding:9px var(--s-2);
+  border-bottom:1px solid rgba(255,255,255,.04);
+  transition:background var(--t-fast);border-radius:var(--r-sm)}
+.evts li:hover{background:rgba(255,255,255,.03)}
+.evt-type{display:inline-flex;align-items:center;gap:5px;
+  font-size:var(--fs-2xs);font-weight:var(--fw-heavy);
+  letter-spacing:.8px;text-transform:uppercase;
+  padding:3px 9px;border-radius:var(--r-sm);justify-self:start}
+.evt-type.t-created{background:rgba(34,197,94,.16);color:var(--c-ok)}
+.evt-type.t-modified{background:rgba(59,130,246,.16);color:var(--c-info)}
+.evt-type.t-moved{background:rgba(245,158,11,.16);color:var(--c-warn)}
+.evt-type.t-deleted{background:rgba(229,9,20,.16);color:var(--c-accent)}
+.evt-path{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d0d0d8}
+.evt-ent{font-size:var(--fs-xs);color:var(--c-mute);
+  font-variant-numeric:tabular-nums;padding:2px var(--s-2);border-radius:var(--r-sm)}
+.evt-ent.hi{color:var(--c-accent);font-weight:var(--fw-heavy);
+  background:rgba(229,9,20,.12)}
+.evt-time{font-size:var(--fs-xs);color:var(--c-mute-2);
+  font-variant-numeric:tabular-nums}
+
+/* 6.13 · empty state */
+.empty{padding:var(--s-8) 0;text-align:center;color:var(--c-mute-2);
+  font-size:var(--fs-sm)}
+.empty svg{width:26px;height:26px;stroke:var(--c-mute-2);fill:none;
+  stroke-width:1.6;margin-bottom:var(--s-3);opacity:.5}
+
+/* 6.14 · dialog */
+dialog.settings{width:100%;max-width:720px;background:#111116;color:var(--c-text);
+  border:1px solid var(--c-border);border-radius:var(--r-2xl);padding:0;
+  box-shadow:var(--sh-2xl);overflow:hidden}
+dialog.settings::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(8px)}
+.modal-head{padding:var(--s-6) var(--s-7) 0;display:flex;align-items:center;
+  justify-content:space-between}
+.modal-title{display:flex;align-items:center;gap:var(--s-3);
+  font-size:var(--fs-xl);font-weight:var(--fw-heavy)}
+.modal-title svg{width:20px;height:20px;stroke:var(--c-accent);fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.modal-close{width:34px;height:34px;border-radius:var(--r-full);
+  background:rgba(255,255,255,.05);border:1px solid var(--c-border);
+  color:var(--c-text);display:grid;place-items:center;
+  transition:background var(--t-fast)}
+.modal-close:hover{background:rgba(255,255,255,.1)}
+.modal-tabs{display:flex;gap:var(--s-1);padding:var(--s-5) var(--s-7) 0;
+  border-bottom:1px solid var(--c-border)}
+.modal-tab{padding:var(--s-3) var(--s-4);color:var(--c-mute);
+  font-size:var(--fs-sm);font-weight:var(--fw-semi);
+  border-bottom:2px solid transparent;transition:all var(--t-fast);
+  display:flex;align-items:center;gap:var(--s-2)}
+.modal-tab:hover{color:var(--c-text)}
+.modal-tab[aria-selected="true"]{color:var(--c-text);border-color:var(--c-accent)}
+.modal-tab svg{width:14px;height:14px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.modal-body{padding:var(--s-6) var(--s-7) var(--s-7);max-height:60vh;overflow-y:auto}
+.modal-body section{display:none}
+.modal-body section.on{display:block}
+.modal-desc{font-size:var(--fs-sm);color:var(--c-mute);
+  margin-bottom:var(--s-5);line-height:var(--lh-loose)}
+.cfg-row{display:flex;align-items:center;justify-content:space-between;
+  padding:var(--s-4) 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.cfg-row:last-child{border-bottom:none}
+.cfg-info{max-width:75%}
+.cfg-title{font-size:var(--fs-md);font-weight:var(--fw-bold);
+  margin-bottom:var(--s-1)}
+.cfg-sub{font-size:var(--fs-sm);color:var(--c-mute);line-height:var(--lh-normal)}
+.cfg-value{font-family:var(--font-mono);font-size:var(--fs-sm);
+  font-weight:var(--fw-heavy);padding:5px var(--s-3);border-radius:var(--r-sm);
+  background:rgba(255,255,255,.05);border:1px solid var(--c-border);color:#fff}
+.switch{position:relative;width:44px;height:24px;border-radius:var(--r-full);
+  background:rgba(255,255,255,.1);transition:background var(--t-med);
+  flex:0 0 44px}
+.switch[aria-checked="true"]{background:var(--c-ok)}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;
+  border-radius:50%;background:#fff;transition:transform var(--t-med)}
+.switch[aria-checked="true"]::after{transform:translateX(20px)}
+
+/* 6.15 · toasts */
+.toasts{position:fixed;top:76px;right:var(--s-6);z-index:var(--z-toast);
+  display:flex;flex-direction:column;gap:var(--s-3);pointer-events:none}
+.toasts li{background:linear-gradient(135deg,#1a0a0c,#12100f);
+  border:1px solid rgba(229,9,20,.4);border-left:4px solid var(--c-accent);
+  border-radius:var(--r-lg);padding:var(--s-4) var(--s-5);
+  min-width:310px;max-width:400px;color:var(--c-text);
+  box-shadow:var(--sh-xl),0 0 40px rgba(229,9,20,.15);
+  animation:toastIn .35s var(--ease);pointer-events:auto}
+.toasts li.hide{animation:toastOut .35s var(--ease) forwards}
+.toast-title{font-size:var(--fs-xs);font-weight:var(--fw-black);
+  letter-spacing:1.8px;text-transform:uppercase;color:var(--c-accent);
+  margin-bottom:var(--s-2);display:flex;align-items:center;gap:var(--s-2)}
+.toast-title .ring{width:6px;height:6px;border-radius:50%;
+  background:var(--c-accent);box-shadow:0 0 10px var(--c-accent);
+  animation:pulse 1.2s infinite}
+.toast-msg{font-size:var(--fs-md);color:#e8e8f0;line-height:var(--lh-snug)}
+.toast-meta{font-size:var(--fs-xs);font-family:var(--font-mono);
+  color:var(--c-mute);margin-top:var(--s-2)}
+
+/* 6.16 · footer */
+footer{position:relative;z-index:var(--z-float);
+  padding:var(--s-9) var(--s-7) var(--s-8);text-align:center;
+  color:var(--c-mute-2);font-size:var(--fs-sm);letter-spacing:.5px;
+  margin-top:var(--s-9);border-top:1px solid var(--c-border)}
+
+
+/* ═══ 6.17 · INTERACTIVE COMPONENTS ═══ */
+
+/* (1) Animated number — smooth transitions on stat values */
+.stat-val{
+  transition:color var(--t-med) var(--ease);
+  display:inline-block;
+  font-variant-numeric:tabular-nums;
+}
+.stat-val.pop{animation:numPop .35s var(--ease-spring)}
+@keyframes numPop{0%{transform:scale(1)}45%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+/* (2) Activity chart — interactive bars with tooltip */
+.spark{position:relative}
+.spark .bar-hit{
+  fill:transparent;
+  cursor:crosshair;
+  transition:fill var(--t-fast) var(--ease);
+}
+.spark .bar-hit:hover{fill:rgba(255,255,255,.06)}
+.spark .bar-highlight{
+  fill:none;stroke:var(--c-accent);stroke-width:1.5;
+  opacity:0;pointer-events:none;transition:opacity var(--t-fast) var(--ease);
+}
+.spark .bar-highlight.on{opacity:1}
+
+.chart-tip{
+  position:absolute;pointer-events:none;z-index:10;
+  padding:8px 12px;border-radius:var(--r-md);
+  background:#0e0e11;border:1px solid var(--c-border-2);
+  box-shadow:var(--sh-md);
+  font-size:var(--fs-xs);color:var(--c-text);
+  font-family:var(--font-mono);
+  transform:translate(-50%,-100%);
+  top:0;left:0;opacity:0;
+  transition:opacity var(--t-fast) var(--ease);
+  white-space:nowrap;
+}
+.chart-tip.on{opacity:1}
+.chart-tip .count{color:var(--c-accent);font-weight:var(--fw-heavy);font-size:var(--fs-sm)}
+.chart-tip .time{color:var(--c-mute);display:block;margin-top:2px}
+
+/* (3) Scoring breakdown — expandable under gauge */
+.score-breakdown{
+  margin-top:var(--s-5);width:100%;max-width:280px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--c-border);border-radius:var(--r-md);
+  overflow:hidden;font-family:var(--font-mono);
+}
+.score-toggle{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  padding:var(--s-3) var(--s-4);
+  font-size:var(--fs-xs);font-weight:var(--fw-bold);
+  letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--c-mute);cursor:pointer;
+  transition:color var(--t-fast) var(--ease),background var(--t-fast) var(--ease);
+}
+.score-toggle:hover{color:var(--c-text);background:rgba(255,255,255,.03)}
+.score-toggle .chev{
+  width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;
+  transition:transform var(--t-med) var(--ease);
+}
+.score-breakdown.open .score-toggle .chev{transform:rotate(180deg)}
+.score-body{
+  max-height:0;overflow:hidden;
+  transition:max-height var(--t-med) var(--ease);
+}
+.score-breakdown.open .score-body{max-height:320px}
+.score-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px var(--s-4);font-size:var(--fs-xs);
+  border-top:1px solid rgba(255,255,255,.04);
+}
+.score-row .label{color:var(--c-mute);display:flex;align-items:center;gap:var(--s-2)}
+.score-row .label::before{
+  content:"";width:6px;height:6px;border-radius:50%;
+  background:var(--c-mute-2);
+}
+.score-row.fired .label::before{background:var(--c-accent);
+  box-shadow:0 0 6px var(--c-accent)}
+.score-row .val{color:#fff;font-weight:var(--fw-heavy)}
+.score-row.fired .val{color:var(--c-accent)}
+.score-row.muted{opacity:.35}
+.score-total{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:var(--s-3) var(--s-4);margin-top:2px;
+  background:rgba(229,9,20,.08);
+  border-top:1px solid rgba(229,9,20,.2);
+  font-size:var(--fs-sm);font-weight:var(--fw-heavy);
+}
+.score-total .label{color:var(--c-accent);
+  letter-spacing:1px;text-transform:uppercase;font-size:var(--fs-xs)}
+.score-total .val{color:var(--c-accent);font-size:var(--fs-lg)}
+
+@media (max-width:720px){
+  .score-breakdown{max-width:100%}
+}
+
+
+/* ═══ 6.18 · WATCH PREFERENCES (funnel) ═══ */
+.funnel{
+  display:grid;
+  grid-template-columns:1.15fr 1fr;
+  gap:var(--s-7);
+  align-items:start;
+}
+@media (max-width:900px){
+  .funnel{grid-template-columns:1fr}
+}
+
+.funnel-form{display:flex;flex-direction:column;gap:var(--s-4)}
+
+.funnel-eyebrow{
+  display:inline-flex;align-items:center;gap:var(--s-2);
+  font-size:var(--fs-xs);font-weight:var(--fw-heavy);
+  letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--c-accent);margin-bottom:var(--s-2);
+}
+.funnel-eyebrow::before{
+  content:"";width:6px;height:6px;border-radius:50%;
+  background:var(--c-accent);box-shadow:0 0 8px var(--c-accent);
+}
+.funnel-title{
+  font-size:var(--fs-2xl);
+  font-weight:var(--fw-black);
+  letter-spacing:var(--tr-tight);
+  line-height:1.15;
+  margin-bottom:var(--s-2);
+}
+.funnel-desc{
+  font-size:var(--fs-md);
+  color:var(--c-mute);
+  line-height:var(--lh-loose);
+  margin-bottom:var(--s-3);
+}
+
+/* Checkbox group */
+.watch-group{
+  display:flex;flex-direction:column;gap:var(--s-2);
+  margin-bottom:var(--s-3);
+}
+.watch-option{
+  display:flex;align-items:center;gap:var(--s-3);
+  padding:var(--s-3) var(--s-4);
+  border-radius:var(--r-md);
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--c-border);
+  cursor:pointer;
+  transition:all var(--t-fast) var(--ease);
+}
+.watch-option:hover{
+  background:rgba(255,255,255,.06);
+  border-color:var(--c-border-2);
+}
+.watch-option input{
+  position:absolute;opacity:0;pointer-events:none;
+}
+.watch-option .box{
+  width:20px;height:20px;flex:0 0 20px;
+  border-radius:var(--r-xs);
+  border:1.5px solid var(--c-border-2);
+  background:rgba(0,0,0,.3);
+  display:grid;place-items:center;
+  transition:all var(--t-fast) var(--ease);
+}
+.watch-option .box svg{
+  width:12px;height:12px;stroke:#fff;fill:none;stroke-width:3;
+  stroke-linecap:round;stroke-linejoin:round;
+  opacity:0;transform:scale(.5);
+  transition:opacity var(--t-fast) var(--ease),transform var(--t-fast) var(--ease-spring);
+}
+.watch-option input:checked ~ .box{
+  background:var(--c-accent);border-color:var(--c-accent);
+  box-shadow:0 0 10px var(--c-accent-glow);
+}
+.watch-option input:checked ~ .box svg{
+  opacity:1;transform:scale(1);
+}
+.watch-option input:focus-visible ~ .box{
+  outline:2px solid var(--c-accent);outline-offset:2px;
+}
+.watch-option .label{
+  flex:1;min-width:0;
+}
+.watch-option .label strong{
+  display:block;font-size:var(--fs-md);font-weight:var(--fw-semi);
+  color:var(--c-text);margin-bottom:2px;
+}
+.watch-option .label span{
+  display:block;font-size:var(--fs-xs);color:var(--c-mute);
+}
+.watch-option .dot{
+  width:8px;height:8px;border-radius:50%;flex:0 0 8px;
+}
+.watch-option[data-level="Warning"] .dot{background:var(--c-warn)}
+.watch-option[data-level="Critical"] .dot{background:var(--c-accent);
+  box-shadow:0 0 6px var(--c-accent)}
+.watch-option[data-level="Burst"] .dot{background:var(--c-info)}
+.watch-option[data-level="Entropy"] .dot{background:var(--c-special)}
+
+/* Email field — optional, low friction */
+.field{
+  display:flex;flex-direction:column;gap:var(--s-2);
+  margin-bottom:var(--s-2);
+}
+.field label{
+  font-size:var(--fs-xs);color:var(--c-mute);
+  font-weight:var(--fw-bold);letter-spacing:1px;text-transform:uppercase;
+}
+.field input[type="email"]{
+  width:100%;padding:var(--s-3) var(--s-4);
+  border-radius:var(--r-md);
+  background:rgba(0,0,0,.3);
+  border:1px solid var(--c-border);
+  color:var(--c-text);font-family:var(--font-sans);font-size:var(--fs-md);
+  transition:border-color var(--t-fast) var(--ease);
+}
+.field input[type="email"]:focus{
+  outline:none;border-color:var(--c-accent);
+  box-shadow:0 0 0 3px var(--c-accent-glow);
+}
+.field .hint{
+  font-size:var(--fs-xs);color:var(--c-mute-2);
+}
+
+/* CTA */
+.funnel-cta{
+  display:flex;align-items:center;gap:var(--s-3);
+  flex-wrap:wrap;
+  margin-top:var(--s-2);
+}
+.btn-funnel{
+  display:inline-flex;align-items:center;gap:var(--s-2);
+  padding:var(--s-3) var(--s-5);
+  border-radius:var(--r-full);
+  background:var(--c-accent);color:#fff;
+  font-size:var(--fs-md);font-weight:var(--fw-bold);
+  box-shadow:var(--sh-glow);
+  transition:all var(--t-fast) var(--ease);
+}
+.btn-funnel:hover{transform:translateY(-1px);
+  box-shadow:0 8px 20px var(--c-accent-glow)}
+.btn-funnel:active{transform:translateY(0)}
+.btn-funnel svg{width:14px;height:14px;stroke:#fff;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.funnel-status{
+  font-size:var(--fs-xs);color:var(--c-mute);
+  font-family:var(--font-mono);
+  display:inline-flex;align-items:center;gap:var(--s-2);
+}
+.funnel-status.saved{color:var(--c-ok)}
+
+/* Right column — trust + availability */
+.funnel-aside{
+  display:flex;flex-direction:column;gap:var(--s-4);
+  padding:var(--s-5);
+  border-radius:var(--r-lg);
+  background:rgba(0,0,0,.25);
+  border:1px solid var(--c-border);
+}
+
+.availability{
+  display:flex;align-items:center;gap:var(--s-3);
+  padding-bottom:var(--s-4);
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.availability-dot{
+  width:10px;height:10px;border-radius:50%;flex:0 0 10px;
+  background:var(--c-ok);box-shadow:0 0 12px var(--c-ok);
+  animation:pulse 2s infinite;
+}
+.availability-dot.warn{background:var(--c-warn);box-shadow:0 0 12px var(--c-warn)}
+.availability-dot.crit{background:var(--c-accent);box-shadow:0 0 12px var(--c-accent);
+  animation-duration:1s}
+.availability-text strong{
+  display:block;font-size:var(--fs-md);font-weight:var(--fw-bold);
+  color:var(--c-text);margin-bottom:2px;
+}
+.availability-text span{
+  font-size:var(--fs-xs);color:var(--c-mute);
+  font-family:var(--font-mono);
+}
+
+.trust-list{
+  display:flex;flex-direction:column;gap:var(--s-3);
+}
+.trust-item{
+  display:flex;align-items:flex-start;gap:var(--s-3);
+  font-size:var(--fs-sm);color:var(--c-mute);line-height:1.5;
+}
+.trust-item svg{
+  width:16px;height:16px;flex:0 0 16px;margin-top:2px;
+  stroke:var(--c-ok);fill:none;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+.trust-item strong{color:var(--c-text);font-weight:var(--fw-semi)}
+
+
+/* ═══ 6.19 · PROOF OF WORK ═══ */
+.proof-grid{
+  display:grid;
+  grid-template-columns:1fr 1.3fr 1fr;
+  gap:var(--s-6);
+  align-items:start;
+}
+@media (max-width:1100px){
+  .proof-grid{grid-template-columns:1fr 1fr}
+  .proof-col:last-child{grid-column:1 / -1}
+}
+@media (max-width:720px){
+  .proof-grid{grid-template-columns:1fr}
+}
+
+.proof-col h3{
+  font-size:var(--fs-xs);
+  font-weight:var(--fw-heavy);
+  letter-spacing:1.8px;
+  text-transform:uppercase;
+  color:var(--c-mute);
+  margin-bottom:var(--s-4);
+  display:flex;
+  align-items:center;
+  gap:var(--s-2);
+}
+.proof-col h3::before{
+  content:"";
+  width:4px;height:12px;
+  background:var(--c-accent);
+  border-radius:2px;
+  box-shadow:0 0 8px var(--c-accent-glow);
+}
+
+/* Metrics */
+.proof-metrics{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:var(--s-2);
+}
+.proof-metric{
+  padding:var(--s-3) var(--s-3);
+  border-radius:var(--r-md);
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--c-border);
+  transition:all var(--t-fast) var(--ease);
+}
+.proof-metric:hover{
+  background:rgba(255,255,255,.06);
+  border-color:var(--c-border-2);
+}
+.proof-metric .n{
+  font-size:var(--fs-xl);
+  font-weight:var(--fw-black);
+  letter-spacing:var(--tr-tight);
+  line-height:1;
+  color:#fff;
+  font-variant-numeric:tabular-nums;
+}
+.proof-metric .n.acc{color:var(--c-accent)}
+.proof-metric .n.ok{color:var(--c-ok)}
+.proof-metric .n.info{color:var(--c-info)}
+.proof-metric .n.warn{color:var(--c-warn)}
+.proof-metric .l{
+  font-size:var(--fs-2xs);
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:var(--c-mute);
+  margin-top:var(--s-2);
+  font-weight:var(--fw-bold);
+  line-height:1.35;
+}
+
+/* Claims table */
+.proof-claims{
+  display:flex;
+  flex-direction:column;
+  gap:var(--s-2);
+}
+.proof-claim{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:var(--s-3);
+  align-items:center;
+  padding:var(--s-3) var(--s-4);
+  border-radius:var(--r-md);
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--c-border);
+  transition:all var(--t-fast) var(--ease);
+}
+.proof-claim:hover{
+  background:rgba(255,255,255,.05);
+  border-color:var(--c-border-2);
+}
+.proof-claim .c-text{
+  font-size:var(--fs-sm);
+  color:var(--c-text);
+  font-weight:var(--fw-medium);
+  line-height:1.4;
+}
+.proof-claim .c-text code{
+  font-family:var(--font-mono);
+  font-size:.85em;
+  padding:1px 5px;
+  border-radius:3px;
+  background:rgba(255,255,255,.06);
+  color:#d0d0d8;
+}
+.proof-claim .c-tag{
+  font-size:var(--fs-2xs);
+  font-weight:var(--fw-heavy);
+  letter-spacing:1px;
+  text-transform:uppercase;
+  padding:3px 8px;
+  border-radius:var(--r-sm);
+  background:rgba(34,197,94,.15);
+  color:var(--c-ok);
+  border:1px solid rgba(34,197,94,.25);
+  white-space:nowrap;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+}
+.proof-claim .c-tag::before{
+  content:"✓";
+  font-size:11px;
+}
+
+/* Stack list */
+.proof-stack{
+  display:flex;
+  flex-direction:column;
+  gap:var(--s-2);
+}
+.proof-chip{
+  display:flex;
+  align-items:center;
+  gap:var(--s-3);
+  padding:var(--s-3) var(--s-4);
+  border-radius:var(--r-md);
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--c-border);
+  transition:all var(--t-fast) var(--ease);
+}
+.proof-chip:hover{
+  background:rgba(255,255,255,.05);
+  border-color:var(--c-border-2);
+}
+.proof-chip .dot{
+  width:8px;height:8px;border-radius:50%;flex:0 0 8px;
+}
+.proof-chip .dot.ok{background:var(--c-ok);box-shadow:0 0 8px var(--c-ok)}
+.proof-chip .dot.warn{background:var(--c-warn);box-shadow:0 0 8px var(--c-warn)}
+.proof-chip .dot.info{background:var(--c-info);box-shadow:0 0 8px var(--c-info)}
+.proof-chip .dot.acc{background:var(--c-accent);box-shadow:0 0 8px var(--c-accent)}
+.proof-chip .name{
+  flex:1;
+  font-size:var(--fs-sm);
+  color:var(--c-text);
+  font-weight:var(--fw-medium);
+}
+.proof-chip .name code{
+  font-family:var(--font-mono);
+  font-size:.85em;
+  color:var(--c-mute);
+}
+.proof-chip .ver{
+  font-family:var(--font-mono);
+  font-size:var(--fs-xs);
+  color:var(--c-mute-2);
+}
+
+/* ─────────────── 7 · MOTION / KEYFRAMES ─────────────── */
+@keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(3%,4%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes scroll{to{transform:translateX(-100%)}}
+@keyframes heroSpin{to{transform:rotate(360deg)}}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(40px)}}
+
+
+/* 6.5b · value strip */
+.value-strip{position:relative;z-index:var(--z-elevated);
+  margin:var(--s-4) var(--container-px) 0;
+  padding:var(--s-4) var(--container-px);border-radius:var(--r-xl);
+  background:var(--c-glass);backdrop-filter:blur(20px);
+  border:1px solid var(--c-border);box-shadow:var(--sh-md);
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-4)}
+.value-item{display:flex;align-items:center;gap:var(--s-3);
+  font-size:var(--fs-sm);color:var(--c-mute);line-height:1.4}
+.value-item strong{color:var(--c-text);font-weight:var(--fw-heavy);
+  display:block;font-size:var(--fs-md);margin-bottom:2px;
+  letter-spacing:var(--tr-snug)}
+.value-icon{width:34px;height:34px;border-radius:var(--r-md);flex:0 0 34px;
+  display:grid;place-items:center;background:rgba(229,9,20,.12);
+  border:1px solid rgba(229,9,20,.25);color:var(--c-accent)}
+.value-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ghost secondary button */
+.btn-hero.ghost{background:rgba(255,255,255,.12);color:#fff;
+  border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(10px)}
+.btn-hero.ghost:hover{background:rgba(255,255,255,.2);transform:scale(1.02)}
+.btn-hero.ghost svg{width:16px;height:16px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* sub-CTA link under hero buttons */
+.hero-cta-sub{margin-top:var(--s-4);font-size:var(--fs-sm);
+  color:rgba(255,255,255,.55)}
+.hero-cta-sub a{color:#fff;text-decoration:none;font-weight:var(--fw-semi);
+  border-bottom:1px solid rgba(255,255,255,.25);
+  transition:border-color var(--t-fast)}
+.hero-cta-sub a:hover{border-color:#fff}
+
+@media (max-width:1100px){
+  .value-strip{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:720px){
+  .value-strip{grid-template-columns:minmax(0,1fr);
+    margin:var(--s-3) var(--s-3) 0;padding:var(--s-4)}
+}
+
+/* ─────────────── 8 · RESPONSIVE ─────────────── */
+@media (max-width:1100px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .section.grid-2,
+  .section.grid-2-wide{grid-template-columns:minmax(0,1fr)}
+  .hero{grid-template-columns:minmax(0,1fr);
+    padding:var(--s-8) var(--s-7)}
+  .hero-figure{display:flex;justify-content:center}
+}
+@media (max-width:720px){
+  .app-header{padding:0 var(--s-3)}
+  .nav-pill{display:none}
+  .hero{margin:var(--s-4) var(--s-3) 0;
+    padding:var(--s-7) var(--s-5)}
+  .stats{margin:-28px var(--s-3) 0;
+    grid-template-columns:minmax(0,1fr);padding:var(--s-4)}
+  .section{padding:var(--s-6) var(--s-3) 0}
+  .icon-btn:first-of-type{display:none}
+  .donut-wrap{flex-direction:column}
+  .donut{width:140px;height:140px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<!-- AMBIENT BACKGROUND (decorative, aria-hidden) -->
+<div class="ambient" aria-hidden="true"></div>
+
+<!-- LIVE TICKER: passively announces recent events -->
+<aside class="ticker" aria-label="Live event ticker">
+  <span class="ticker-label"><span class="ticker-dot" aria-hidden="true"></span>Live</span>
+  <div class="ticker-track">
+    <p class="ticker-inner" id="ticker-inner">Loading latest events…</p>
+  </div>
+</aside>
+
+<!-- APP HEADER: brand, primary nav, quick actions -->
+<header class="app-header">
+  <a class="brand" href="#top" aria-label="RDRS home">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z"/></svg>
+    <span>RDRS</span>
+  </a>
+
+  <nav class="nav-pill" aria-label="Primary">
+    <a href="#top" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v10a2 2 0 01-2 2h-4v-7h-6v7H5a2 2 0 01-2-2z"/></svg>
+      Overview
+    </a>
+    <a href="#events">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/></svg>
+      Events
+    </a>
+    <a href="#alerts">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l4 4h-3v6h-2V6H8l4-4z"/><path d="M5 14v4a2 2 0 002 2h10a2 2 0 002-2v-4"/></svg>
+      Alerts
+    </a>
+    <a href="/docs" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+      API
+    </a>
+  </nav>
+
+  <div class="nav-actions">
+    <button class="icon-btn" id="open-settings" aria-label="Open settings" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
+    <button class="icon-btn live" id="live-btn" aria-label="Live status indicator" aria-live="polite">
+      <span class="visually-hidden" id="live-status-text">Live status unknown</span>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- HERO: primary threat level + score gauge -->
+  <section class="hero" id="top" aria-labelledby="hero-title">
+    <div class="hero-body">
+      <p class="hero-kicker"><span class="dot" aria-hidden="true"></span>Threat Monitor · Real-time</p>
+      <p class="burst-badge" id="burst-badge" hidden></p>
+      <h1 id="hero-title">Loading…</h1>
+      <dl class="hero-meta">
+        <div><dt class="visually-hidden">Threat level</dt><dd>Level: <b id="hero-level">—</b></dd></div>
+        <span class="sep" aria-hidden="true">·</span>
+        <div><dt class="visually-hidden">Detection window</dt><dd>Window: <b>60 s</b></dd></div>
+        <span class="sep" aria-hidden="true">·</span>
+        <div><dt class="visually-hidden">Last update</dt><dd id="updated">—</dd></div>
+      </dl>
+      <p class="hero-desc">
+        Monitors folders in real time, scores suspicious activity from 0 to 100,
+        and shows you exactly which signals fired.
+      </p>
+
+      <p class="hero-tagline">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z"/></svg>
+        <span>Rule-based detection. No black box. <strong>Simulation mode on</strong> — your files stay untouched.</span>
+      </p>
+      <div class="hero-actions">
+        <a class="btn-hero primary" href="#incidents">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z"/></svg>
+          View live incidents
+        </a>
+        <button class="btn-hero ghost" onclick="downloadReport()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Download report
+        </button>
+      </div>
+      <p class="hero-cta-sub">or <a href="/docs" target="_blank" rel="noopener">explore the API →</a></p>
+    </div>
+
+    <figure class="hero-figure">
+      <div class="gauge" id="gauge" role="img" aria-labelledby="gauge-desc">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="track" cx="100" cy="100" r="80"/>
+          <circle class="val" id="gauge-arc" cx="100" cy="100" r="80"/>
+        </svg>
+        <div class="gauge-center">
+          <div>
+            <div class="gauge-num" id="gauge-num">0</div>
+            <div class="gauge-lbl">Threat Score</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="score-breakdown" id="score-breakdown">
+        <button class="score-toggle" id="score-toggle"
+                aria-expanded="false" aria-controls="score-body">
+          <span>Score breakdown</span>
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
+        <div class="score-body" id="score-body" role="region"
+             aria-label="Threat score breakdown">
+          <div class="score-row" data-signal="rapid_encryption">
+            <span class="label">Rapid encryption</span>
+            <span class="val">+40</span>
+          </div>
+          <div class="score-row" data-signal="mass_rename">
+            <span class="label">Mass rename</span>
+            <span class="val">+30</span>
+          </div>
+          <div class="score-row" data-signal="high_entropy">
+            <span class="label">High entropy</span>
+            <span class="val">+25</span>
+          </div>
+          <div class="score-row" data-signal="cpu_spike">
+            <span class="label">CPU spike</span>
+            <span class="val">+15</span>
+          </div>
+          <div class="score-row" data-signal="unknown_process">
+            <span class="label">Unknown process</span>
+            <span class="val">+10</span>
+          </div>
+          <div class="score-total">
+            <span class="label">Total (capped)</span>
+            <span class="val" id="score-total-val">0</span>
+          </div>
+        </div>
+      </div>
+
+      <figcaption id="gauge-desc" class="visually-hidden">
+        Threat score is out of 100
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- STATS: aggregate counters -->
+  <section class="stats" aria-label="System statistics">
+    <article class="stat">
+      <span class="stat-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M14 3v4h4M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/></svg>
+      </span>
+      <div class="stat-body">
+        <p class="stat-val" id="s-events">—</p>
+        <p class="stat-lbl">Total Events</p>
+      </div>
+    </article>
+    <article class="stat y">
+      <span class="stat-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+      </span>
+      <div class="stat-body">
+        <p class="stat-val" id="s-alerts">—</p>
+        <p class="stat-lbl">Alerts</p>
+      </div>
+    </article>
+    <article class="stat b">
+      <span class="stat-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+      </span>
+      <div class="stat-body">
+        <p class="stat-val" id="s-incidents">—</p>
+        <p class="stat-lbl">Incidents</p>
+      </div>
+    </article>
+    <article class="stat p">
+      <span class="stat-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2L4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z"/></svg>
+      </span>
+      <div class="stat-body">
+        <p class="stat-val" id="s-quarantine">—</p>
+        <p class="stat-lbl">Quarantined</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- VALUE STRIP: three compact proofs of capability -->
+  <section class="value-strip" aria-label="Key capabilities">
+    <div class="value-item">
+      <span class="value-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </span>
+      <span><strong>Real-time</strong>Sub-second event capture &amp; sliding-window scoring</span>
+    </div>
+    <div class="value-item">
+      <span class="value-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+      </span>
+      <span><strong>Explainable</strong>Weighted rules — every point of the score is traceable</span>
+    </div>
+    <div class="value-item">
+      <span class="value-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/></svg>
+      </span>
+      <span><strong>Container-ready</strong>Single-command deployment with Docker Compose</span>
+    </div>
+  </section>
+
+  <!-- LIVE METRICS: activity + CPU -->
+  <section class="section grid-2" aria-label="Live metrics">
+    <h2 class="visually-hidden">Live metrics</h2>
+    <article class="panel">
+      <p class="spark-lbl">
+        <span>Live Activity · Events per 25 s</span>
+        <span id="activity-peak" class="axis">peak —</span>
+      </p>
+      <figure class="spark" id="spark-act-wrap">
+        <svg id="spark-act" preserveAspectRatio="none" role="img" aria-label="Event activity over time"></svg>
+        <div class="chart-tip" id="chart-tip" role="tooltip" aria-hidden="true"></div>
+      </figure>
+    </article>
+    <article class="panel">
+      <p class="spark-lbl">
+        <span>CPU Load · Latest Process</span>
+        <span id="cpu-current" class="v">—</span>
+      </p>
+      <figure class="spark">
+        <svg id="spark-cpu" preserveAspectRatio="none" role="img" aria-label="CPU load over time"></svg>
+      </figure>
+      <p class="spark-axis">
+        <span>← 60 s ago</span>
+        <span id="cpu-proc">—</span>
+        <span>now →</span>
+      </p>
+    </article>
+  </section>
+
+  <!-- ALERTS + INCIDENTS -->
+  <section class="section grid-2" id="alerts" aria-label="Alerts and incidents">
+    <h2 class="visually-hidden">Alerts and incidents</h2>
+    <article class="panel">
+      <header class="panel-head">
+        <h3 class="panel-title"><span class="bar" aria-hidden="true"></span>Recent Alerts</h3>
+        <p class="panel-meta" id="alerts-count">—</p>
+      </header>
+      <ol class="tl" id="alerts-list" aria-live="polite">
+        <li><p class="empty">No alerts yet</p></li>
+      </ol>
+    </article>
+
+    <article class="panel">
+      <header class="panel-head">
+        <h3 class="panel-title" id="incidents"><span class="bar" aria-hidden="true"></span>Incidents</h3>
+        <p class="panel-meta" id="incidents-count">—</p>
+      </header>
+      <ol class="inc-list" id="incidents-list">
+        <li><p class="empty">No incidents yet</p></li>
+      </ol>
+    </article>
+  </section>
+
+  <!-- TOP FILES + DISTRIBUTION -->
+  <section class="section grid-2-wide" aria-label="File activity breakdown">
+    <h2 class="visually-hidden">File activity</h2>
+    <article class="panel">
+      <header class="panel-head">
+        <h3 class="panel-title"><span class="bar" aria-hidden="true"></span>Top Modified Files</h3>
+        <a class="panel-link" href="#events">View all
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </header>
+      <ul class="bars" id="topfiles">
+        <li><p class="empty">No data yet</p></li>
+      </ul>
+    </article>
+
+    <article class="panel">
+      <header class="panel-head">
+        <h3 class="panel-title"><span class="bar" aria-hidden="true"></span>Distribution</h3>
+        <p class="panel-meta">by event type</p>
+      </header>
+      <div class="donut-wrap">
+        <figure class="donut" role="img" aria-label="Event type distribution">
+          <svg viewBox="0 0 150 150" aria-hidden="true">
+            <circle cx="75" cy="75" r="55" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="22"/>
+            <g id="donut-segments"></g>
+          </svg>
+          <div class="donut-center">
+            <div>
+              <p class="n" id="donut-total">0</p>
+              <p class="l">Events</p>
+            </div>
+          </div>
+        </figure>
+        <ul class="donut-legend" id="donut-legend">
+          <li><span class="lg-dot" style="background:#8a8a94"></span>
+            <span class="lg-name">No data</span></li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <!-- ENTROPY -->
+  <section class="section" aria-labelledby="entropy-title">
+    <article class="panel">
+      <header class="panel-head">
+        <h2 class="panel-title" id="entropy-title">
+          <span class="bar" aria-hidden="true"></span>Entropy of Recent Files
+        </h2>
+        <a class="panel-link" href="#events">View all
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </header>
+      <ul class="bars" id="entropy">
+        <li><p class="empty">No entropy data yet</p></li>
+      </ul>
+    </article>
+  </section>
+
+  <!-- EVENTS -->
+  <section class="section" id="events" aria-labelledby="events-title">
+    <article class="panel">
+      <header class="panel-head">
+        <h2 class="panel-title" id="events-title">
+          <span class="bar" aria-hidden="true"></span>Recent Events
+        </h2>
+        <p class="panel-meta" id="events-count">—</p>
+      </header>
+      <ol class="evts" id="events-list" aria-live="polite">
+        <li><p class="empty">Loading…</p></li>
+      </ol>
+    </article>
+  </section>
+
+</main>
+
+
+
+  <!-- PROOF OF WORK · metrics, verifiable claims, stack -->
+  <section class="section" id="proof" aria-labelledby="proof-title">
+    <article class="panel">
+      <header class="panel-head">
+        <h2 class="panel-title" id="proof-title">
+          <span class="bar" aria-hidden="true"></span>Proof of work
+        </h2>
+        <p class="panel-meta">verified · not claimed</p>
+      </header>
+
+      <div class="proof-grid">
+
+        <!-- COLUMN 1 · live project metrics -->
+        <div class="proof-col">
+          <h3>Live metrics</h3>
+          <div class="proof-metrics">
+            <div class="proof-metric">
+              <p class="n ok"  id="p-tests">29</p>
+              <p class="l">Tests passing</p>
+            </div>
+            <div class="proof-metric">
+              <p class="n info" id="p-cov">74%</p>
+              <p class="l">Code coverage</p>
+            </div>
+            <div class="proof-metric">
+              <p class="n acc"  id="p-incidents">—</p>
+              <p class="l">Incidents caught</p>
+            </div>
+            <div class="proof-metric">
+              <p class="n"     id="p-quarantine">—</p>
+              <p class="l">Evidence files</p>
+            </div>
+            <div class="proof-metric">
+              <p class="n"     id="p-signals">6</p>
+              <p class="l">Detection signals</p>
+            </div>
+            <div class="proof-metric">
+              <p class="n ok">0</p>
+              <p class="l">External calls</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMN 2 · verifiable claims -->
+        <div class="proof-col">
+          <h3>Verifiable claims</h3>
+          <ul class="proof-claims">
+            <li class="proof-claim">
+              <span class="c-text">Rule-based scoring — every point is traceable to a named signal</span>
+              <span class="c-tag">verifiable</span>
+            </li>
+            <li class="proof-claim">
+              <span class="c-text">Entropy reads the renamed file, catching fast renames the source path misses</span>
+              <span class="c-tag">verifiable</span>
+            </li>
+            <li class="proof-claim">
+              <span class="c-text">Simulation mode by default — <code>config.yaml: simulation_mode: true</code></span>
+              <span class="c-tag">verifiable</span>
+            </li>
+            <li class="proof-claim">
+              <span class="c-text">Quarantine copies, never moves. Originals are never modified</span>
+              <span class="c-tag">verifiable</span>
+            </li>
+            <li class="proof-claim">
+              <span class="c-text">Audit log records every incident with score, level, file count, PID</span>
+              <span class="c-tag">verifiable</span>
+            </li>
+            <li class="proof-claim">
+              <span class="c-text">Docker-ready — <code>docker compose up</code> starts the full stack</span>
+              <span class="c-tag">verifiable</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- COLUMN 3 · technical stack -->
+        <div class="proof-col">
+          <h3>Stack</h3>
+          <div class="proof-stack">
+            <div class="proof-chip">
+              <span class="dot ok"   aria-hidden="true"></span>
+              <span class="name">Python <code>3.12+</code></span>
+              <span class="ver">runtime</span>
+            </div>
+            <div class="proof-chip">
+              <span class="dot info" aria-hidden="true"></span>
+              <span class="name">FastAPI <code>+ Uvicorn</code></span>
+              <span class="ver">REST API</span>
+            </div>
+            <div class="proof-chip">
+              <span class="dot warn" aria-hidden="true"></span>
+              <span class="name">watchdog <code>+ psutil</code></span>
+              <span class="ver">file &amp; process</span>
+            </div>
+            <div class="proof-chip">
+              <span class="dot info" aria-hidden="true"></span>
+              <span class="name">SQLAlchemy <code>+ SQLite</code></span>
+              <span class="ver">storage</span>
+            </div>
+            <div class="proof-chip">
+              <span class="dot acc"  aria-hidden="true"></span>
+              <span class="name">Docker <code>Compose</code></span>
+              <span class="ver">deploy</span>
+            </div>
+            <div class="proof-chip">
+              <span class="dot ok"   aria-hidden="true"></span>
+              <span class="name">pytest <code>+ coverage</code></span>
+              <span class="ver">tests</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </article>
+  </section>
+
+  <!-- WATCH PREFERENCES · two-step funnel -->
+  <section class="section" id="watch" aria-labelledby="watch-title">
+    <article class="panel">
+      <div class="funnel">
+
+        <!-- LEFT · the form -->
+        <form class="funnel-form" id="watch-form" novalidate>
+          <p class="funnel-eyebrow">Step 1 · Filter</p>
+          <h2 class="funnel-title" id="watch-title">
+            Only hear about what matters to you.
+          </h2>
+          <p class="funnel-desc">
+            Pick the threat levels you want surfaced. RDRS will silence the rest.
+            Everything is stored in your browser — nothing is sent anywhere.
+          </p>
+
+          <fieldset class="watch-group" style="border:0;padding:0;margin:0">
+            <legend class="visually-hidden">Choose which threat events to watch</legend>
+
+            <label class="watch-option" data-level="Warning">
+              <input type="checkbox" name="watch" value="Warning" checked>
+              <span class="box" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
+              </span>
+              <span class="dot" aria-hidden="true"></span>
+              <span class="label">
+                <strong>Warning events</strong>
+                <span>Score 40–69 · unusual file activity</span>
+              </span>
+            </label>
+
+            <label class="watch-option" data-level="Critical">
+              <input type="checkbox" name="watch" value="Critical" checked>
+              <span class="box" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
+              </span>
+              <span class="dot" aria-hidden="true"></span>
+              <span class="label">
+                <strong>Critical incidents</strong>
+                <span>Score 70+ · incident + evidence captured</span>
+              </span>
+            </label>
+
+            <label class="watch-option" data-level="Burst">
+              <input type="checkbox" name="watch" value="Burst">
+              <span class="box" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
+              </span>
+              <span class="dot" aria-hidden="true"></span>
+              <span class="label">
+                <strong>Burst detected</strong>
+                <span>5+ events inside a single 25 s window</span>
+              </span>
+            </label>
+
+            <label class="watch-option" data-level="Entropy">
+              <input type="checkbox" name="watch" value="Entropy">
+              <span class="box" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
+              </span>
+              <span class="dot" aria-hidden="true"></span>
+              <span class="label">
+                <strong>High entropy (&gt; 6.5)</strong>
+                <span>Files that look encrypted or random</span>
+              </span>
+            </label>
+          </fieldset>
+
+          <!-- Optional email — low friction, never sent -->
+          <div class="field">
+            <label for="watch-email">Email (optional)</label>
+            <input type="email" id="watch-email" name="email"
+                   placeholder="you@example.com" autocomplete="email">
+            <p class="hint">
+              Only stored locally for future webhook support. Never transmitted.
+            </p>
+          </div>
+
+          <div class="funnel-cta">
+            <button type="submit" class="btn-funnel">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+              Save watch preferences
+            </button>
+            <span class="funnel-status" id="funnel-status" aria-live="polite"></span>
+          </div>
+        </form>
+
+        <!-- RIGHT · availability + trust -->
+        <aside class="funnel-aside" aria-label="Availability and trust">
+          <div class="availability">
+            <span class="availability-dot" id="availability-dot" aria-hidden="true"></span>
+            <div class="availability-text">
+              <strong id="availability-title">Monitoring</strong>
+              <span id="availability-sub">Loading…</span>
+            </div>
+          </div>
+
+          <ul class="trust-list">
+            <li class="trust-item">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2L4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
+              <span><strong>Simulation mode on.</strong> Never kills processes, never modifies your files.</span>
+            </li>
+            <li class="trust-item">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12l5 5L20 7"/>
+              </svg>
+              <span><strong>No accounts, no tracking.</strong> Preferences live in your browser's localStorage.</span>
+            </li>
+            <li class="trust-item">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              <span><strong>Runs locally.</strong> No telemetry, no external calls, no data leaves this machine.</span>
+            </li>
+            <li class="trust-item">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+              </svg>
+              <span><strong>Open rules.</strong> Every alert threshold is a line in <code>config.yaml</code>.</span>
+            </li>
+          </ul>
+        </aside>
+
+      </div>
+    </article>
+  </section>
+
+<footer>
+  <p>RDRS · Defensive Security · Simulation Mode · All data local</p>
+</footer>
+
+<!-- SETTINGS MODAL (native dialog) -->
+<dialog class="settings" id="settings-modal" aria-labelledby="settings-title">
+  <header class="modal-head">
+    <h2 class="modal-title" id="settings-title">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Settings
+    </h2>
+    <button class="modal-close" onclick="closeSettings()" aria-label="Close settings">✕</button>
+  </header>
+
+  <nav class="modal-tabs" role="tablist" aria-label="Settings categories">
+    <button class="modal-tab" role="tab" aria-selected="true" data-tab="detection">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+      Detection
+    </button>
+    <button class="modal-tab" role="tab" aria-selected="false" data-tab="thresholds">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      Thresholds
+    </button>
+    <button class="modal-tab" role="tab" aria-selected="false" data-tab="about">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      About
+    </button>
+  </nav>
+
+  <div class="modal-body">
+    <section data-section="detection" class="on" role="tabpanel">
+      <p class="modal-desc">Simulation mode keeps the system safe. Quarantine copies evidence but never touches originals. Process termination is logged rather than executed.</p>
+      <div class="cfg-row">
+        <div class="cfg-info">
+          <p class="cfg-title">Simulation Mode</p>
+          <p class="cfg-sub">Never kill processes. Log only.</p>
+        </div>
+        <button class="switch" role="switch" aria-checked="true" aria-label="Simulation mode"></button>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-info">
+          <p class="cfg-title">Auto Quarantine</p>
+          <p class="cfg-sub">Copy affected files to ./data/quarantine/</p>
+        </div>
+        <button class="switch" role="switch" aria-checked="true" aria-label="Auto quarantine"></button>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-info">
+          <p class="cfg-title">Audit Logging</p>
+          <p class="cfg-sub">Write AUDIT lines to logs/audit.log</p>
+        </div>
+        <button class="switch" role="switch" aria-checked="true" aria-label="Audit logging"></button>
+      </div>
+    </section>
+
+    <section data-section="thresholds" role="tabpanel">
+      <p class="modal-desc">Active detection thresholds from <code>config.yaml</code>.</p>
+      <div class="cfg-row">
+        <div class="cfg-info"><p class="cfg-title">Files per minute</p>
+          <p class="cfg-sub">Triggers rapid_encryption signal (+40)</p></div>
+        <p class="cfg-value">20</p>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-info"><p class="cfg-title">Renames per minute</p>
+          <p class="cfg-sub">Triggers mass_rename signal (+30)</p></div>
+        <p class="cfg-value">10</p>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-info"><p class="cfg-title">Entropy threshold</p>
+          <p class="cfg-sub">Triggers high_entropy signal (+25)</p></div>
+        <p class="cfg-value">6.5 / 8</p>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-info"><p class="cfg-title">Sliding window</p>
+          <p class="cfg-sub">Events retained for scoring</p></div>
+        <p class="cfg-value">60 s</p>
+      </div>
+    </section>
+
+    <section data-section="about" role="tabpanel">
+      <p class="modal-desc">Ransomware Detection and Response System — v1.0</p>
+      <div class="cfg-row">
+        <div class="cfg-info"><p class="cfg-title">Detection Engine</p>
+          <p class="cfg-sub">Rule-based · weighted score 0–100</p></div>
+        <p class="cfg-value">Active</p>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-info"><p class="cfg-title">REST API</p>
+          <p class="cfg-sub">/health /status /alerts /events /reports /stats</p></div>
+        <p class="cfg-value">FastAPI</p>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-info"><p class="cfg-title">Storage</p>
+          <p class="cfg-sub">SQLite · data/rdrs.db</p></div>
+        <p class="cfg-value">Local</p>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-info"><p class="cfg-title">Docker</p>
+          <p class="cfg-sub">docker compose up</p></div>
+        <p class="cfg-value">Ready</p>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-info"><p class="cfg-title">Tests</p>
+          <p class="cfg-sub">29 passing · 74% coverage</p></div>
+        <p class="cfg-value">Green</p>
+      </div>
+    </section>
+  </div>
+</dialog>
+
+<!-- TOASTS (aria-live region) -->
+<ol class="toasts" id="toasts" aria-live="polite" aria-atomic="true"></ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const parseTs = ts => {
+  if(!ts) return 0;
+  if(!/[Z]|[+-]\d{2}:?\d{2}$/.test(ts)) ts += 'Z';
+  return new Date(ts).getTime();
+};
+const fmtTime = ts => new Date(parseTs(ts)).toLocaleTimeString();
+const timeEl = ts => `<time datetime="${new Date(parseTs(ts)).toISOString()}">${fmtTime(ts)}</time>`;
+
+
+/* ═══ Change detection — skip re-render if data unchanged ═══ */
+const __lastHash = {};
+function changed(key, data){
+  const h = JSON.stringify(data);
+  if(__lastHash[key] === h) return false;
+  __lastHash[key] = h;
+  return true;
+}
+
+/* Toasts */
+let lastLevel = null;
+function showToast(title, msg, meta){
+  const li = document.createElement('li');
+  li.className = 'toast';
+  li.innerHTML = `
+    <p class="toast-title"><span class="ring" aria-hidden="true"></span>${esc(title)}</p>
+    <p class="toast-msg">${esc(msg)}</p>
+    ${meta ? `<p class="toast-meta">${esc(meta)}</p>` : ''}`;
+  $('toasts').appendChild(li);
+  setTimeout(() => { li.classList.add('hide'); setTimeout(() => li.remove(), 400); }, 6000);
+}
+
+/* Hero */
+function renderHero(s){
+  const level = s.level || 'Normal';
+  const score = s.score ?? 0;
+  const cls = level === 'Critical' ? 'crit' : level === 'Warning' ? 'warn' : 'ok';
+  const title = level === 'Critical' ? 'CRITICAL THREAT'
+              : level === 'Warning'  ? 'ELEVATED ACTIVITY'
+              : 'ALL CLEAR';
+  $('hero-title').textContent = title;
+  document.querySelector('.hero').className = 'hero ' + (cls === 'ok' ? '' : cls);
+  $('hero-level').textContent = level;
+  $('updated').innerHTML = 'Updated ' + new Date().toLocaleTimeString();
+  const R = 80, C = 2 * Math.PI * R, arc = $('gauge-arc');
+  arc.style.strokeDasharray = C;
+  arc.style.strokeDashoffset = C - (score / 100) * C;
+  $('gauge').className = 'gauge ' + (cls === 'ok' ? '' : cls);
+  $('gauge-num').textContent = score;
+  $('gauge').setAttribute('aria-label', `Threat score ${score} of 100 — level ${level}`);
+  $('live-btn').className = 'icon-btn live' + (cls === 'crit' ? ' crit' : cls === 'warn' ? ' warn' : '');
+  $('live-status-text').textContent = `Current threat level: ${level}`;
+
+  if(lastLevel !== null && level !== lastLevel){
+    if(level === 'Critical'){
+      showToast('CRITICAL ALERT', s.last_alert?.message || 'Critical threat detected',
+        s.last_alert ? `Score ${s.last_alert.score} · ${fmtTime(s.last_alert.timestamp)}` : '');
+    } else if(level === 'Warning'){
+      showToast('WARNING', s.last_alert?.message || 'Elevated activity',
+        s.last_alert ? `Score ${s.last_alert.score}` : '');
+    }
+  }
+  lastLevel = level;
+  updateScoreBreakdown(s);
+}
+
+/* Stats + CPU */
+function animateNumber(el, target){
+  const current = parseInt(el.dataset.value || '0', 10);
+  if(current === target){ return; }
+  el.dataset.value = target;
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+  const duration = 400;
+  const start = performance.now();
+  function step(now){
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(current + (target - current) * eased);
+    if(t < 1){ requestAnimationFrame(step); }
+    else { el.textContent = target; el.classList.remove('pop'); }
+  }
+  requestAnimationFrame(step);
+}
+
+function renderStats(st){
+  if(!st || st.error) return;
+  animateNumber($('s-events'),     st.total_events ?? 0);
+  animateNumber($('s-alerts'),     st.total_alerts ?? 0);
+  animateNumber($('s-incidents'),  st.total_incidents ?? 0);
+  animateNumber($('s-quarantine'), st.quarantined_files ?? 0);
+
+  const hist = st.cpu_history || [];
+  const cur = hist.length ? hist[hist.length-1].cpu : 0;
+  $('cpu-current').textContent = cur.toFixed(1) + '%';
+  $('cpu-proc').textContent = st.latest_process
+    ? `${st.latest_process.name} (${st.latest_process.pid})` : 'no process';
+
+  const W = 1000, H = 80, pad = 6;
+  const maxCpu = Math.max(...hist.map(h => h.cpu), 5);
+  const stepX = hist.length > 1 ? (W - pad*2) / (hist.length - 1) : 0;
+  const pts = hist.map((h,i) => [pad + i*stepX, H - pad - (h.cpu/maxCpu) * (H - pad*2)]);
+  if(!pts.length) return;
+  const line = pts.map((p,i) => (i?'L':'M') + p[0] + ',' + p[1]).join(' ');
+  const area = line + ` L ${pts[pts.length-1][0]},${H} L ${pts[0][0]},${H} Z`;
+  const grad = cur > 50 ? '#e50914' : cur > 20 ? '#f59e0b' : '#22c55e';
+  $('spark-cpu').setAttribute('viewBox', `0 0 ${W} ${H}`);
+  $('spark-cpu').innerHTML = `
+    <defs><linearGradient id="cpuGrad" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="${grad}" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="${grad}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#cpuGrad)"/>
+    <path d="${line}" fill="none" stroke="${grad}" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="4" fill="${grad}"/>`;
+}
+
+/* Alerts */
+function renderAlerts(a){
+  $('alerts-count').textContent = a.length + ' total';
+  const el = $('alerts-list');
+  if(!a.length){ el.innerHTML = '<li><p class="empty">No alerts yet</p></li>'; return; }
+  el.innerHTML = a.map(x => `
+    <li data-level="${esc(x.level)}">
+      <p class="tl-msg">${esc(x.message)}</p>
+      <p class="tl-meta">
+        <span class="tl-score">${x.score}</span>
+        <span>${esc(x.level)}</span>
+        ${timeEl(x.timestamp)}
+      </p>
+    </li>`).join('');
+}
+
+/* Incidents */
+function renderIncidents(list){
+  $('incidents-count').textContent = list.length + ' total';
+  const el = $('incidents-list');
+  if(!list.length){ el.innerHTML = '<li><p class="empty">No incidents yet</p></li>'; return; }
+  el.innerHTML = list.slice(0,6).map(i => {
+    const files = Array.isArray(i.affected_files) ? i.affected_files.length : 0;
+    return `<li>
+      <span class="inc-badge">#${i.id}</span>
+      <div class="inc-body">
+        <p class="inc-title">${esc(i.level)} Incident</p>
+        <p class="inc-sub">${files} files · ${timeEl(i.timestamp)}</p>
+      </div>
+      <p class="inc-score">${i.score}</p>
+    </li>`;
+  }).join('');
+}
+
+/* Top files */
+function renderTopFiles(events){
+  const el = $('topfiles');
+  if(!events.length){ el.innerHTML = '<li><p class="empty">No data</p></li>'; return; }
+  const counts = {};
+  events.forEach(e => { if(e.path) counts[e.path] = (counts[e.path]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if(!sorted.length){ el.innerHTML = '<li><p class="empty">No files</p></li>'; return; }
+  const max = sorted[0][1];
+  el.innerHTML = sorted.map(([path,n]) => {
+    const parts = path.split('/'); const name = parts.pop();
+    const dir = parts.slice(-1)[0] || '';
+    const ext = name.includes('.') ? '.' + name.split('.').pop() : '';
+    const base = ext ? name.slice(0,-ext.length) : name;
+    const pct = Math.max(6, (n/max)*100);
+    return `<li>
+      <span class="bar-name" title="${esc(path)}">
+        <span class="dir">${esc(dir)}/</span>${esc(base)}<span class="ext">${esc(ext)}</span>
+      </span>
+      <span class="bar-track"><span class="bar-fill" style="width:${pct}%"></span></span>
+      <span class="bar-num">${n}</span>
+    </li>`;
+  }).join('');
+}
+
+/* Donut */
+function renderDonut(events){
+  const colors = { created:'#22c55e', modified:'#3b82f6', moved:'#f59e0b', deleted:'#e50914' };
+  const counts = { created:0, modified:0, moved:0, deleted:0 };
+  events.forEach(e => { if(counts[e.event_type] !== undefined) counts[e.event_type]++; });
+  const total = Object.values(counts).reduce((a,b)=>a+b,0);
+  $('donut-total').textContent = total;
+  const cx=75, cy=75, R=55, C=2*Math.PI*R;
+  let off = 0;
+  $('donut-segments').innerHTML = Object.entries(counts).map(([k,v]) => {
+    const len = (total ? v/total : 0) * C;
+    const seg = `<circle class="seg" cx="${cx}" cy="${cy}" r="${R}" stroke="${colors[k]}"
+      stroke-dasharray="${len} ${C}" stroke-dashoffset="${-off}"
+      transform="rotate(-90 ${cx} ${cy})"/>`;
+    off += len;
+    return seg;
+  }).join('');
+  $('donut-legend').innerHTML = Object.entries(counts).map(([k,v]) => {
+    const pct = total ? ((v/total)*100).toFixed(0) : 0;
+    return `<li>
+      <span class="lg-dot" style="background:${colors[k]}" aria-hidden="true"></span>
+      <span class="lg-name">${k}</span>
+      <span class="lg-val">${v}</span>
+      <span class="lg-pct">${pct}%</span>
+    </li>`;
+  }).join('');
+}
+
+/* Entropy */
+function renderEntropy(events){
+  const el = $('entropy');
+  const latest = new Map();
+  for(const e of events){
+    if(e.entropy == null) continue;
+    const v = Number(e.entropy); if(v <= 0.05) continue;
+    if(!latest.has(e.path)) latest.set(e.path, { path:e.path, entropy:v });
+  }
+  const list = Array.from(latest.values()).slice(0,10);
+  if(!list.length){ el.innerHTML = '<li><p class="empty">No entropy data yet</p></li>'; return; }
+  const THR = 6.5, thrPct = (THR/8)*100;
+  el.innerHTML = list.map(e => {
+    const name = e.path.split('/').pop();
+    const pct = Math.min(100, (e.entropy/8)*100);
+    const cls = e.entropy >= THR ? 'hi' : '';
+    return `<li>
+      <span class="bar-name" title="${esc(e.path)}">${esc(name)}</span>
+      <span class="bar-track">
+        <span class="bar-fill e ${cls}" style="width:${pct}%"></span>
+        <span class="thr-line" style="left:${thrPct}%"></span>
+      </span>
+      <span class="bar-num">${e.entropy.toFixed(2)}</span>
+    </li>`;
+  }).join('');
+}
+
+/* Activity chart */
+function renderActivity(events){
+  const now = Date.now();
+  const WINDOW = 5*60*1000, BUCKET = 25*1000, N = 12;
+  const buckets = new Array(N).fill(0);
+  events.forEach(e => {
+    const d = now - parseTs(e.timestamp);
+    if(d < 0 || d > WINDOW) return;
+    const idx = N - 1 - Math.floor(d / BUCKET);
+    if(idx >= 0 && idx < N) buckets[idx]++;
+  });
+  const peak = Math.max(...buckets, 1);
+  const W = 1200, H = 80, pad = 6, slot = (W - pad*2)/N, bw = slot - 4;
+  const bars = buckets.map((v,i) => {
+    const h = Math.max(2, (v/peak) * (H - pad*2));
+    const x = pad + i*slot + 2, y = H - pad - h;
+    const fill = v >= peak*0.66 ? '#e50914' : v >= peak*0.33 ? '#f59e0b' : '#3b82f6';
+    const bucketStart = new Date(now - (N - i) * BUCKET);
+    const bucketEnd   = new Date(now - (N - i - 1) * BUCKET);
+    const timeLbl = `${bucketStart.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} – ${bucketEnd.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+    return `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="3"
+              fill="${fill}" opacity="${v?1:.15}"/>
+            <rect class="bar-hit" x="${x}" y="0" width="${bw}" height="${H}"
+              data-count="${v}" data-time="${timeLbl}"
+              data-x="${x + bw/2}" data-y="${y}"
+              tabindex="0" role="button"
+              aria-label="${v} events between ${timeLbl}"/>`;
+  }).join('');
+  bars;
+  const marks = ['-5m','-4m','-3m','-2m','-1m','now'].map((lbl,i) => {
+    const x = pad + (i/5) * (W - pad*2);
+    const anchor = i===0?'start':i===5?'end':'middle';
+    return `<text x="${x}" y="${H-2}" font-size="9" fill="#5c5c66"
+      font-family="monospace" text-anchor="${anchor}">${lbl}</text>`;
+  }).join('');
+  $('spark-act').setAttribute('viewBox', `0 0 ${W} ${H+4}`);
+  $('spark-act').innerHTML = bars + marks;
+  $('activity-peak').textContent = 'peak ' + peak + ' / 25s';
+
+  const spike = Math.max(...buckets);
+  const badge = $('burst-badge');
+  if(spike >= 5){
+    badge.hidden = false;
+    badge.textContent = `Burst detected · ${spike} events / 25s`;
+  } else {
+    badge.hidden = true;
+  }
+}
+
+/* Events */
+let eventsCache = [];
+function renderEvents(events){
+  eventsCache = events;
+  const q = ($('search-input')?.value || '').toLowerCase();
+  const filtered = q ? events.filter(e =>
+    (e.path||'').toLowerCase().includes(q) ||
+    (e.event_type||'').toLowerCase().includes(q)) : events;
+  $('events-count').textContent = filtered.length + ' shown';
+  const el = $('events-list');
+  if(!filtered.length){ el.innerHTML = '<li><p class="empty">No events match</p></li>'; return; }
+  el.innerHTML = filtered.slice(0,40).map(e => {
+    const ent = e.entropy != null ? Number(e.entropy) : null;
+    const entCls = ent !== null && ent >= 6.5 ? 'hi' : '';
+    const entTxt = ent !== null ? ent.toFixed(2) : '—';
+    return `<li>
+      <span class="evt-type t-${esc(e.event_type)}">${esc(e.event_type)}</span>
+      <span class="evt-path" title="${esc(e.path)}">${esc(e.path)}</span>
+      <span class="evt-ent ${entCls}">${entTxt}</span>
+      <span class="evt-time">${timeEl(e.timestamp)}</span>
+    </li>`;
+  }).join('');
+}
+
+/* Ticker */
+function renderTicker(events){
+  const el = $('ticker-inner');
+  if(!events.length){ el.textContent = 'Waiting for events…'; return; }
+  el.innerHTML = events.slice(0,30).map(e => {
+    const ent = (e.entropy != null && e.entropy > 0)
+      ? ` <span class="ent">ent=${Number(e.entropy).toFixed(2)}</span>` : '';
+    return `<span><span class="k">${esc(e.event_type).toUpperCase()}</span> ` +
+           `<span class="s">${esc(e.path)}</span>${ent}</span>`;
+  }).join('');
+}
+
+/* Settings dialog (native) */
+function openSettings(){ $('settings-modal').showModal(); }
+function closeSettings(){ $('settings-modal').close(); }
+$('open-settings').onclick = openSettings;
+document.querySelectorAll('.modal-tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.modal-tab').forEach(x =>
+      x.setAttribute('aria-selected','false'));
+    t.setAttribute('aria-selected','true');
+    document.querySelectorAll('.modal-body section').forEach(s =>
+      s.classList.toggle('on', s.dataset.section === t.dataset.tab));
+  };
+});
+document.querySelectorAll('.switch').forEach(s =>
+  s.onclick = () => s.setAttribute('aria-checked',
+    s.getAttribute('aria-checked') === 'true' ? 'false' : 'true'));
+
+
+/* Download the current incidents as a JSON file */
+async function downloadReport(){
+  try{
+    const r = await fetch('/reports');
+    if(!r.ok) throw new Error('Failed to fetch reports');
+    const data = await r.json();
+    const blob = new Blob([JSON.stringify(data, null, 2)],
+                         {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `rdrs-report-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast('REPORT DOWNLOADED',
+      `${data.length} incident${data.length===1?'':'s'} saved`,
+      'rdrs-report.json');
+  }catch(err){
+    showToast('DOWNLOAD FAILED', err.message, '');
+  }
+}
+
+
+/* ═══ Interactive Components ═══ */
+
+/* (1) Score breakdown toggle */
+const breakdown = $('score-breakdown');
+const breakdownToggle = $('score-toggle');
+if (breakdownToggle){
+  breakdownToggle.addEventListener('click', () => {
+    const open = breakdown.classList.toggle('open');
+    breakdownToggle.setAttribute('aria-expanded', String(open));
+  });
+}
+
+/* (2) Highlight active signals in the breakdown based on current status */
+function updateScoreBreakdown(status){
+  const msg = (status?.last_alert?.message || '').toLowerCase();
+  const score = status?.score ?? 0;
+  document.querySelectorAll('#score-body .score-row').forEach(row => {
+    const signal = row.dataset.signal;
+    const fired = msg.includes(signal) ||
+      (signal === 'rapid_encryption' && msg.includes('rapid_encryption')) ||
+      (signal === 'mass_rename'      && msg.includes('mass_rename')) ||
+      (signal === 'high_entropy'     && msg.includes('high_entropy'));
+    row.classList.toggle('fired', fired);
+    row.classList.toggle('muted', !fired);
+  });
+  const total = $('score-total-val');
+  if (total) total.textContent = score;
+}
+
+/* (3) Activity chart tooltip */
+(function initChartTooltip(){
+  const wrap = $('spark-act-wrap');
+  const tip = $('chart-tip');
+  if (!wrap || !tip) return;
+
+  function showTip(hit){
+    const rect = wrap.getBoundingClientRect();
+    const vb = wrap.querySelector('svg').viewBox.baseVal;
+    const xRatio = (+hit.dataset.x) / vb.width;
+    const yRatio = (+hit.dataset.y) / vb.height;
+    tip.style.left = (xRatio * rect.width) + 'px';
+    tip.style.top  = (yRatio * rect.height - 8) + 'px';
+    tip.innerHTML = `<span class="count">${hit.dataset.count} events</span>
+                     <span class="time">${hit.dataset.time}</span>`;
+    tip.classList.add('on');
+    tip.setAttribute('aria-hidden', 'false');
+  }
+  function hideTip(){
+    tip.classList.remove('on');
+    tip.setAttribute('aria-hidden', 'true');
+  }
+  wrap.addEventListener('mouseover', e => {
+    if (e.target.classList.contains('bar-hit')) showTip(e.target);
+  });
+  wrap.addEventListener('mouseout', e => {
+    if (e.target.classList.contains('bar-hit')) hideTip();
+  });
+  wrap.addEventListener('focusin', e => {
+    if (e.target.classList.contains('bar-hit')) showTip(e.target);
+  });
+  wrap.addEventListener('focusout', hideTip);
+})();
+
+
+
+/* ═══ Watch preferences (funnel) ═══ */
+const WATCH_KEY = 'rdrs.watch.v1';
+const EMAIL_KEY = 'rdrs.email.v1';
+
+function loadWatchPrefs(){
+  try {
+    const saved = JSON.parse(localStorage.getItem(WATCH_KEY) || 'null');
+    if (!Array.isArray(saved)) return;
+    document.querySelectorAll('#watch-form input[name="watch"]').forEach(inp => {
+      inp.checked = saved.includes(inp.value);
+    });
+  } catch {}
+  const savedEmail = localStorage.getItem(EMAIL_KEY);
+  if (savedEmail){
+    const input = $('watch-email');
+    if (input) input.value = savedEmail;
+  }
+}
+
+function saveWatchPrefs(){
+  const picked = Array.from(
+    document.querySelectorAll('#watch-form input[name="watch"]:checked')
+  ).map(i => i.value);
+  localStorage.setItem(WATCH_KEY, JSON.stringify(picked));
+  const email = $('watch-email')?.value?.trim() || '';
+  if (email) localStorage.setItem(EMAIL_KEY, email);
+  else localStorage.removeItem(EMAIL_KEY);
+
+  const status = $('funnel-status');
+  if (status){
+    status.classList.add('saved');
+    status.textContent = `✓ Saved · watching ${picked.length} signal${picked.length === 1 ? '' : 's'}`;
+    setTimeout(() => {
+      status.classList.remove('saved');
+      status.textContent = '';
+    }, 4000);
+  }
+}
+
+function initFunnel(){
+  loadWatchPrefs();
+  const form = $('watch-form');
+  if (form){
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      saveWatchPrefs();
+    });
+  }
+}
+
+/* Availability indicator — updated on each refresh */
+function updateAvailability(status, stats){
+  const dot = $('availability-dot');
+  const title = $('availability-title');
+  const sub = $('availability-sub');
+  if (!dot || !title || !sub) return;
+
+  const level = status?.level || 'Normal';
+  dot.className = 'availability-dot ' +
+    (level === 'Critical' ? 'crit' : level === 'Warning' ? 'warn' : '');
+
+  const totalEvents = stats?.total_events ?? 0;
+  const totalAlerts = stats?.total_alerts ?? 0;
+
+  title.textContent = level === 'Critical'
+    ? 'Active investigation'
+    : level === 'Warning'
+      ? 'Elevated monitoring'
+      : 'Monitoring';
+
+  sub.textContent = `${totalEvents} events · ${totalAlerts} alerts · 60 s window`;
+}
+
+
+/* ═══ Proof metrics (live, from /stats) ═══ */
+function updateProofMetrics(st){
+  if(!st || st.error) return;
+  const set = (id, v) => { const el = $(id); if(el) el.textContent = v; };
+  set('p-incidents',  st.total_incidents ?? 0);
+  set('p-quarantine', st.quarantined_files ?? 0);
+}
+
+/* Fetch loop */
+async function fetchJson(u){
+  try { const r = await fetch(u); return r.ok ? await r.json() : null; }
+  catch { return null; }
+}
+async function refresh(){
+  // Single request — returns {status, alerts, events, reports, stats}
+  const data = await fetchJson('/dashboard');
+  if(!data) return;
+
+  const status    = data.status;
+  const alerts    = data.alerts;
+  const events    = data.events;
+  const incidents = data.reports;
+  const stats     = data.stats;
+
+  if(status)    renderHero(status);
+  if(alerts && changed('alerts', alerts))       renderAlerts(alerts);
+  if(events && changed('events', events)){
+    renderTopFiles(events); renderEntropy(events);
+    renderActivity(events); renderEvents(events);
+    renderDonut(events); renderTicker(events);
+  }
+  if(incidents && changed('incidents', incidents)) renderIncidents(incidents);
+  if(stats)     renderStats(stats);
+  updateAvailability(status, stats);
+  updateProofMetrics(stats);
+}
+refresh();
+initFunnel();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>

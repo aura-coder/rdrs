@@ -1,0 +1,30 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Runtime data (never commit)
+data/rdrs.db
+data/sandbox/*
+data/quarantine/
+!data/sandbox/.gitkeep
+
+# Logs
+logs/*.log
+
+# Reports generated at runtime
+report.json
+report.csv
+reports_output/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Backups (should never exist in git)
+*.bak
+*.pre-*

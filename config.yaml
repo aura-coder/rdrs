@@ -1,0 +1,20 @@
+watch_folders:
+  - ./data/sandbox
+
+thresholds:
+  files_per_minute: 20
+  renames_per_minute: 10
+  entropy_avg: 6.5
+
+weights:
+  rapid_encryption: 40
+  mass_rename: 30
+  high_entropy: 25
+  cpu_spike: 15
+  unknown_process: 10
+
+simulation_mode: true
+quarantine_path: ./data/quarantine
+database_path: ./data/rdrs.db
+log_dir: ./logs
+window_seconds: 60
