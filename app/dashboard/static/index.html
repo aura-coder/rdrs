@@ -1008,6 +1008,39 @@ footer{position:relative;z-index:var(--z-float);
   color:var(--c-mute-2);
 }
 
+
+/* 6.20 · Drop zone */
+.dropzone{
+  border:2px dashed var(--c-border-2);
+  border-radius:var(--r-lg);
+  padding:var(--s-7) var(--s-5);
+  text-align:center;
+  color:var(--c-mute);
+  font-size:var(--fs-md);
+  transition:all var(--t-med) var(--ease);
+  cursor:pointer;
+  background:rgba(255,255,255,.02);
+}
+.dropzone:hover,.dropzone.drag{
+  border-color:var(--c-accent);
+  background:rgba(229,9,20,.05);
+  color:var(--c-text);
+}
+.dropzone .link{
+  color:var(--c-accent);
+  cursor:pointer;
+  text-decoration:underline;
+  font-weight:var(--fw-semi);
+}
+.dropzone p{margin:0}
+.dropzone small{
+  display:block;
+  margin-top:var(--s-3);
+  color:var(--c-mute-2);
+  font-size:var(--fs-xs);
+  font-family:var(--font-mono);
+}
+
 /* ─────────────── 7 · MOTION / KEYFRAMES ─────────────── */
 @keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(3%,4%)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
@@ -1537,6 +1570,24 @@ footer{position:relative;z-index:var(--z-float);
           </div>
         </div>
 
+      </div>
+    </article>
+  </section>
+
+
+  <!-- LIVE TEST · drop a file, watch detection fire -->
+  <section class="section" id="live-test" aria-labelledby="live-test-title">
+    <article class="panel">
+      <header class="panel-head">
+        <h2 class="panel-title" id="live-test-title">
+          <span class="bar" aria-hidden="true"></span>Live Test · Upload a file
+        </h2>
+        <p class="panel-meta">drop any file → detection fires within seconds</p>
+      </header>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Drop file or click to browse">
+        <p>Drop a file here, or <label for="file-input" class="link">browse</label></p>
+        <small>File is saved to ./data/sandbox/ · max 10 MB</small>
+        <input type="file" id="file-input" style="display:none" aria-label="Choose file to upload">
       </div>
     </article>
   </section>
@@ -2294,6 +2345,55 @@ function updateProofMetrics(st){
   set('p-quarantine', st.quarantined_files ?? 0);
 }
 
+
+/* ═══ Live test · file upload drop zone ═══ */
+function initDropzone(){
+  const zone = document.getElementById('dropzone');
+  const input = document.getElementById('file-input');
+  if(!zone || !input) return;
+
+  input.addEventListener('change', e => {
+    if(e.target.files.length) uploadFile(e.target.files[0]);
+  });
+
+  zone.addEventListener('click', e => {
+    if(e.target.tagName !== 'LABEL') input.click();
+  });
+
+  ['dragenter','dragover'].forEach(evt => {
+    zone.addEventListener(evt, e => {
+      e.preventDefault(); zone.classList.add('drag');
+    });
+  });
+  ['dragleave','drop'].forEach(evt => {
+    zone.addEventListener(evt, e => {
+      e.preventDefault(); zone.classList.remove('drag');
+    });
+  });
+  zone.addEventListener('drop', e => {
+    const files = e.dataTransfer?.files;
+    if(files && files.length) uploadFile(files[0]);
+  });
+}
+
+async function uploadFile(file){
+  const fd = new FormData();
+  fd.append('file', file);
+  try{
+    const r = await fetch('/upload', {method:'POST', body: fd});
+    const data = await r.json();
+    if(data.ok){
+      showToast('FILE UPLOADED',
+        `${data.file} · ${(data.size/1024).toFixed(1)} KB`,
+        'Watching for detection...');
+    } else {
+      showToast('UPLOAD FAILED', data.error || 'Unknown error', '');
+    }
+  } catch(err){
+    showToast('UPLOAD FAILED', err.message, '');
+  }
+}
+
 /* Fetch loop */
 async function fetchJson(u){
   try { const r = await fetch(u); return r.ok ? await r.json() : null; }
@@ -2324,6 +2424,7 @@ async function refresh(){
 }
 refresh();
 initFunnel();
+initDropzone();
 setInterval(refresh, 3000);
 </script>
 </body>

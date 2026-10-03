@@ -1,6 +1,7 @@
 """RDRS REST API."""
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
+from pathlib import Path as _Path
 from fastapi.staticfiles import StaticFiles
 
 from app.database.crud import (
@@ -115,3 +116,33 @@ def scan():
 @app.post("/settings")
 def settings():
     return {"message": "Settings update"}
+
+# ── File upload: drop a file → watchdog detects it live ──
+SANDBOX = Path("./data/sandbox")
+SANDBOX.mkdir(parents=True, exist_ok=True)
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024   # 10 MB
+
+
+@app.post("/upload")
+async def upload(file: UploadFile = File(...)):
+    """Accept a file and save it into the sandbox for live detection."""
+    safe_name = Path(file.filename).name  # strip any path components
+    if not safe_name:
+        return {"ok": False, "error": "Invalid filename"}
+
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_BYTES:
+        return {"ok": False, "error": f"File too large (max {MAX_UPLOAD_BYTES // 1024 // 1024} MB)"}
+
+    dest = SANDBOX / safe_name
+    # Avoid overwriting — add a numeric suffix if needed
+    if dest.exists():
+        stem, suffix = dest.stem, dest.suffix
+        i = 1
+        while dest.exists():
+            dest = SANDBOX / f"{stem}_{i}{suffix}"
+            i += 1
+
+    dest.write_bytes(content)
+    return {"ok": True, "file": dest.name, "size": len(content)}
+
