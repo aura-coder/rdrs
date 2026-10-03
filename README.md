@@ -117,7 +117,4 @@ inside `data/sandbox/`.
 
 ## Author
 
-**Your Full Name**  
-B.Tech CSE — 4th Year  
-[Your College Name]  
-[Your Email]
+Project submission for internship at Intermo.
