@@ -45,6 +45,8 @@ class Incident(Base):
     level = Column(String)
     affected_files = Column(Text)
     suspect_process = Column(Text)
+    timeline = Column(Text, nullable=True)
+    recommendations = Column(Text, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
 
