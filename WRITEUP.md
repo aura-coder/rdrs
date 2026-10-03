@@ -23,7 +23,7 @@ an explainable threat score.
 - Live security dashboard with 8 metric panels
 - JSON + CSV incident report generation
 - Docker Compose deployment (Fedora / SELinux-aware)
-- 29 automated tests passing, 74% code coverage
+- 41 automated tests passing, 87% code coverage
 
 ---
 
@@ -89,7 +89,7 @@ are caught reliably.
 
 ## 3. How it was tested
 
-### 3.1 Automated tests — 29 passing
+### 3.1 Automated tests — 41 passing
 
 Organised by module:
 
@@ -103,7 +103,7 @@ Organised by module:
 - `test_logging.py` — logger setup
 - `test_reports.py` — JSON and CSV generation
 
-**Coverage: 74%** (`pytest --cov=app`). The uncovered lines are the
+**Coverage: 87%** (`pytest --cov=app`). The uncovered lines are the
 watchdog event loop in `monitor.py` and the threaded `main.py` entry
 point — both need a live process, which is why they're excluded.
 
@@ -158,7 +158,7 @@ the placeholder for it. Extending the whitelist is a one-file change.
 4. **WebSocket updates** — replace the 3-second polling loop with
    server-push. Would cut idle traffic to near zero.
 5. **Full test coverage** — mock `watchdog` and push coverage from
-   74% to 90%+.
+   87% to 95%+.
 
 ---
 
