@@ -5,6 +5,7 @@ thresholds:
   files_per_minute: 20
   renames_per_minute: 10
   entropy_avg: 6.5
+  extension_changes_per_minute: 5
 
 weights:
   rapid_encryption: 40
@@ -12,6 +13,7 @@ weights:
   high_entropy: 25
   cpu_spike: 15
   unknown_process: 10
+  extension_changes: 20
 
 simulation_mode: true
 quarantine_path: ./data/quarantine

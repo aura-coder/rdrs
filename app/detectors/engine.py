@@ -62,6 +62,18 @@ class DetectionEngine:
 
         files_modified = sum(1 for e in self.events if e[1] in ('created', 'modified'))
         renames = sum(1 for e in self.events if e[1] == 'moved')
+
+        # Extension changes — files renamed to suspicious extensions
+
+        SUSPICIOUS_EXT = ('.locked', '.encrypted', '.crypto', '.enc', '.crypt')
+
+        extension_changes = sum(
+
+            1 for ev in self.events
+
+            if ev[1] == 'moved' and ev[3] and ev[3].lower() in SUSPICIOUS_EXT
+
+        )
         entropies = [e[4] for e in self.events if e[4] is not None]
         avg_entropy = sum(entropies) / len(entropies) if entropies else 0.0
 
@@ -76,6 +88,10 @@ class DetectionEngine:
         if avg_entropy > self.thresholds['entropy_avg']:
             score += self.weights['high_entropy']
             signals.append('high_entropy')
+        if extension_changes > self.thresholds.get('extension_changes_per_minute', 5):
+            score += self.weights.get('extension_changes', 20)
+            signals.append('extension_changes')
+
         if self._latest_cpu() > self.CPU_SPIKE_THRESHOLD:
             score += self.weights.get('cpu_spike', 15)
             signals.append('cpu_spike')
