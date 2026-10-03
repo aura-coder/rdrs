@@ -47,5 +47,14 @@ class Incident(Base):
     suspect_process = Column(Text)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
+
+class Score(Base):
+    __tablename__ = 'scores'
+    id = Column(Integer, primary_key=True)
+    score = Column(Integer)
+    level = Column(String)
+    signals = Column(Text)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
 def init_db():
     Base.metadata.create_all(engine)

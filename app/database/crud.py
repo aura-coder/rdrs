@@ -45,14 +45,22 @@ def add_alert(level, score, message):
     session.commit()
     session.close()
 
-def add_incident(score, level, affected_files, suspect_process):
+def add_incident(score, level, affected_files, suspect_process, timeline=None, recommendations=None):
+    if recommendations is None:
+        recommendations = [
+            "Isolate the affected folder from network shares.",
+            "Review the suspect process - verify it is not a backup tool.",
+            "Restore affected files from a known-good backup.",
+            "Add the culprit binary hash to your deny-list.",
+        ]
     session = Session()
     incident = Incident(
-        score=score,
-        level=level,
+        score=score, level=level,
         affected_files=json.dumps(affected_files),
         suspect_process=json.dumps(suspect_process),
-        timestamp=datetime.now(timezone.utc)
+        timestamp=datetime.now(timezone.utc),
+        timeline=json.dumps(timeline or []),
+        recommendations=json.dumps(recommendations),
     )
     session.add(incident)
     session.commit()
@@ -98,6 +106,8 @@ def get_incidents(limit=10):
             'level': i.level,
             'affected_files': json.loads(i.affected_files),
             'suspect_process': json.loads(i.suspect_process),
+            'timeline': json.loads(i.timeline) if getattr(i, 'timeline', None) else [],
+            'recommendations': json.loads(i.recommendations) if getattr(i, 'recommendations', None) else [],
             'timestamp': i.timestamp.isoformat()
         } for i in incidents
     ]

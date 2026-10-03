@@ -34,6 +34,27 @@ class DetectionEngine:
             self.events.popleft()
         self.evaluate()
 
+    SAFE_PROCESSES = {'python', 'python3', 'python3.12', 'pytest', 'uvicorn', 'bash', 'sh', 'zsh', 'systemd', 'watchdog'}
+    CPU_SPIKE_THRESHOLD = 60.0
+
+    def _latest_cpu(self):
+        try:
+            s = Session()
+            snap = s.query(ProcessSnapshot).order_by(ProcessSnapshot.timestamp.desc()).first()
+            s.close()
+            return float(snap.cpu_percent) if snap and snap.cpu_percent else 0.0
+        except Exception:
+            return 0.0
+
+    def _suspect_name(self):
+        try:
+            s = Session()
+            snap = s.query(ProcessSnapshot).order_by(ProcessSnapshot.timestamp.desc()).first()
+            s.close()
+            return (snap.name or '').lower() if snap else ''
+        except Exception:
+            return ''
+
     def evaluate(self):
         """Compute signals, score, level, and trigger incident if Critical."""
         if not self.events:
@@ -55,6 +76,13 @@ class DetectionEngine:
         if avg_entropy > self.thresholds['entropy_avg']:
             score += self.weights['high_entropy']
             signals.append('high_entropy')
+        if self._latest_cpu() > self.CPU_SPIKE_THRESHOLD:
+            score += self.weights.get('cpu_spike', 15)
+            signals.append('cpu_spike')
+        suspect = self._suspect_name()
+        if suspect and suspect not in self.SAFE_PROCESSES:
+            score += self.weights.get('unknown_process', 10)
+            signals.append('unknown_process')
         score = min(score, 100)
 
         level = 'Normal'

@@ -6,6 +6,33 @@ alerts with evidence capture.
 
 **Educational project. Defensive use only. Never run real malware.**
 
+
+## Architecture
+
+```
+simulate_attack.py
+      |  (writes to sandbox)
+      v
+  [watchdog Observer]  <-- app/detectors/monitor.py
+      |
+      +-- entropy read -> SQLite (events)
+      +-- psutil snapshot -> SQLite (processes)
+      |
+      v
+  [Detection Engine]  <-- app/detectors/engine.py
+      |  sliding 60s window + weighted scoring
+      +--> alert / incident / quarantine
+      |
+      v
+  [FastAPI]  <-- app/api/main.py
+      |  /status /alerts /events /reports /stats /dashboard
+      |
+      v
+  [HTML Dashboard]  <-- app/dashboard/static/index.html
+```
+
+---
+
 ## Features
 
 - Real-time file monitoring (create / modify / rename / delete)
@@ -90,4 +117,7 @@ inside `data/sandbox/`.
 
 ## Author
 
-[Your name] — [Class / Course] — [Date]
+**Your Full Name**  
+B.Tech CSE — 4th Year  
+[Your College Name]  
+[Your Email]
